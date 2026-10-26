@@ -39,8 +39,8 @@ class KopiNavigation extends StatelessWidget {
               ),
             ),
           ),
-          _Tab('Мечты', Glyph.flag, false, onDreams),
-          _Tab('Обзор', Glyph.overview, false, onOverview),
+          _Tab('Мечты', Glyph.flag, selected == 'dreams', onDreams),
+          _Tab('Обзор', Glyph.overview, selected == 'overview', onOverview),
         ],
       ),
     ),
@@ -252,6 +252,7 @@ class FinanceRow extends StatelessWidget {
           const SizedBox(width: 8),
           Flexible(
             flex: 2,
+            fit: FlexFit.tight,
             child: Text(
               amount,
               textAlign: TextAlign.right,

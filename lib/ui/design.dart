@@ -65,18 +65,25 @@ class Heading extends StatelessWidget {
 
 class Flower extends StatelessWidget {
   final double size;
-  const Flower({super.key, this.size = 72});
+  final Color color;
+  const Flower({
+    super.key,
+    this.size = 72,
+    this.color = const Color(0xFFE0B9CC),
+  });
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
-    child: CustomPaint(size: Size.square(size), painter: _FlowerPainter()),
+    child: CustomPaint(size: Size.square(size), painter: _FlowerPainter(color)),
   );
 }
 
 class _FlowerPainter extends CustomPainter {
+  final Color color;
+  _FlowerPainter(this.color);
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()..color = const Color(0xFFE0B9CC);
+    final paint = Paint()..color = color;
     for (var i = 0; i < 5; i++) {
       final a = -pi / 2 + i * 2 * pi / 5;
       canvas.drawCircle(
@@ -93,7 +100,7 @@ class _FlowerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FlowerPainter oldDelegate) => false;
+  bool shouldRepaint(_FlowerPainter oldDelegate) => oldDelegate.color != color;
 }
 
 class Brand extends StatelessWidget {
@@ -135,6 +142,9 @@ enum Glyph {
   bag,
   bus,
   movie,
+  laptop,
+  star,
+  bell,
 }
 
 class LineIcon extends StatelessWidget {
@@ -180,6 +190,35 @@ class _IconPainter extends CustomPainter {
     void line(double x, double y, double x2, double y2) =>
         canvas.drawLine(Offset(x, y), Offset(x2, y2), p);
     switch (glyph) {
+      case Glyph.laptop:
+        canvas.drawRect(const Rect.fromLTWH(5, 3, 14, 14), p);
+        path([
+          const Offset(5, 17),
+          const Offset(2, 21),
+          const Offset(22, 21),
+          const Offset(19, 17),
+          const Offset(5, 17),
+        ]);
+      case Glyph.star:
+        final points = List<Offset>.generate(11, (i) {
+          final angle = -pi / 2 + i * pi / 5;
+          final radius = i.isEven ? 10.0 : 4.5;
+          return Offset(12 + cos(angle) * radius, 12 + sin(angle) * radius);
+        });
+        path(points);
+      case Glyph.bell:
+        canvas.drawPath(
+          Path()
+            ..moveTo(4, 18)
+            ..lineTo(6, 15)
+            ..lineTo(6, 9)
+            ..cubicTo(6, 1, 18, 1, 18, 9)
+            ..lineTo(18, 15)
+            ..lineTo(20, 18)
+            ..close(),
+          p,
+        );
+        canvas.drawArc(const Rect.fromLTWH(9, 18, 6, 5), 0, pi, false, p);
       case Glyph.back:
         path([const Offset(14, 5), const Offset(7, 12), const Offset(14, 19)]);
       case Glyph.next:

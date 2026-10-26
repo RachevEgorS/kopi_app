@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'progress.dart';
 
 const monthNames = [
   'январь',
@@ -223,6 +224,9 @@ class DiaryStore extends ChangeNotifier {
   Map<String, Budget> budgets = {};
   List<Entry> entries = [];
   List<PlannedPayment> payments = [];
+  List<SavingGoal> goals = [];
+  Set<String> checkedDays = {}, badges = {};
+  bool remindersEnabled = true, supportEnabled = true;
   static const storageKey = 'kopi.frontend.v1';
 
   void load() {
@@ -244,6 +248,16 @@ class DiaryStore extends ChangeNotifier {
       payments = (json['payments'] as List? ?? [])
           .map((v) => PlannedPayment.fromJson(v as Map<String, dynamic>))
           .toList();
+      goals = (json['goals'] as List? ?? [])
+          .map((v) => SavingGoal.fromJson(v as Map<String, dynamic>))
+          .toList();
+      checkedDays = (json['checkedDays'] as List? ?? []).cast<String>().toSet();
+      badges = (json['badges'] as List? ?? []).cast<String>().toSet();
+      remindersEnabled = json['remindersEnabled'] as bool? ?? true;
+      supportEnabled = json['supportEnabled'] as bool? ?? true;
+      if (entries.isNotEmpty) badges.add('first');
+      if (goals.any((g) => g.complete)) badges.add('goal');
+      if (longestStreak(checkedDays) >= 7) badges.add('week');
     } catch (_) {
       recovered = true;
       signedIn = false;
@@ -251,6 +265,9 @@ class DiaryStore extends ChangeNotifier {
       budgets = {};
       entries = [];
       payments = [];
+      goals = [];
+      checkedDays = {};
+      badges = {};
     }
   }
 
@@ -266,6 +283,11 @@ class DiaryStore extends ChangeNotifier {
         'budgets': budgets.map((k, v) => MapEntry(k, v.toJson())),
         'entries': entries.map((e) => e.toJson()).toList(),
         'payments': payments.map((p) => p.toJson()).toList(),
+        'goals': goals.map((g) => g.toJson()).toList(),
+        'checkedDays': checkedDays.toList(),
+        'badges': badges.toList(),
+        'remindersEnabled': remindersEnabled,
+        'supportEnabled': supportEnabled,
       }),
     );
     if (!success) {
@@ -313,10 +335,13 @@ class DiaryStore extends ChangeNotifier {
     if (entry.amount <= 0) throw ArgumentError('Сумма должна быть больше нуля');
     if (entries.any((e) => e.id == entry.id)) return;
     entries.add(entry);
+    final hadFirst = badges.contains('first');
+    badges.add('first');
     try {
       await _save();
     } catch (_) {
       entries.remove(entry);
+      if (!hadFirst) badges.remove('first');
       rethrow;
     }
   }
@@ -433,6 +458,95 @@ class DiaryStore extends ChangeNotifier {
       signedIn = true;
       rethrow;
     }
+  }
+
+  Future<void> saveGoal(SavingGoal goal) async {
+    if (goal.title.trim().isEmpty ||
+        goal.target <= 0 ||
+        goal.saved < 0 ||
+        goal.weekly < 0) {
+      throw ArgumentError('Проверь данные цели');
+    }
+    final previous = List<SavingGoal>.of(goals),
+        previousBadges = Set<String>.of(badges);
+    final index = goals.indexWhere((g) => g.id == goal.id);
+    if (index < 0) {
+      goals.add(goal);
+    } else {
+      goals[index] = goal;
+    }
+    if (goal.complete) badges.add('goal');
+    try {
+      await _save();
+    } catch (_) {
+      goals = previous;
+      badges = previousBadges;
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGoal(String id) async {
+    final previous = List<SavingGoal>.of(goals);
+    goals.removeWhere((g) => g.id == id);
+    try {
+      await _save();
+    } catch (_) {
+      goals = previous;
+      rethrow;
+    }
+  }
+
+  Future<void> checkToday(DateTime today) async {
+    final key = dayKey(today);
+    if (checkedDays.contains(key)) return;
+    final previousBadges = Set<String>.of(badges);
+    checkedDays.add(key);
+    if (currentStreak(checkedDays, today) >= 7) badges.add('week');
+    try {
+      await _save();
+    } catch (_) {
+      checkedDays.remove(key);
+      badges = previousBadges;
+      rethrow;
+    }
+  }
+
+  Future<void> saveProfile(String newName, String newEmail) async {
+    if (newName.trim().length < 2 ||
+        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(newEmail.trim())) {
+      throw ArgumentError('Проверь имя и почту');
+    }
+    final previousName = name, previousEmail = email;
+    name = newName.trim();
+    email = newEmail.trim();
+    try {
+      await _save();
+    } catch (_) {
+      name = previousName;
+      email = previousEmail;
+      rethrow;
+    }
+  }
+
+  Future<void> savePreferences({bool? reminders, bool? support}) async {
+    final oldReminders = remindersEnabled, oldSupport = supportEnabled;
+    remindersEnabled = reminders ?? remindersEnabled;
+    supportEnabled = support ?? supportEnabled;
+    try {
+      await _save();
+    } catch (_) {
+      remindersEnabled = oldReminders;
+      supportEnabled = oldSupport;
+      rethrow;
+    }
+  }
+
+  int dreamsReserveFor(DateTime month, DateTime today) {
+    final planned = goals.fold<int>(
+      0,
+      (sum, goal) => sum + goal.reserveIn(month, today),
+    );
+    return max(budgets[monthKey(month)]?.dreams ?? 0, planned);
   }
 
   List<Entry> entriesFor(DateTime date) =>

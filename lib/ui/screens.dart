@@ -523,7 +523,13 @@ class DiaryScreen extends StatefulWidget {
   final ValueChanged<int> onMonth;
   final VoidCallback onBudget;
   final Future<void> Function() onLogout;
-  final VoidCallback? onHistory, onOperation, onCalendar, onSubscriptions;
+  final VoidCallback? onHistory,
+      onOperation,
+      onCalendar,
+      onSubscriptions,
+      onProfile,
+      onDreams,
+      onOverview;
   final ValueChanged<Entry>? onEntry;
   final ValueChanged<PaymentOccurrence>? onPayment;
   const DiaryScreen({
@@ -534,6 +540,9 @@ class DiaryScreen extends StatefulWidget {
     required this.onMonth,
     required this.onBudget,
     required this.onLogout,
+    this.onProfile,
+    this.onDreams,
+    this.onOverview,
     this.onHistory,
     this.onOperation,
     this.onCalendar,
@@ -747,6 +756,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
     final days =
         DateTime(widget.month.year, widget.month.month + 1, 0).day -
         (isCurrent ? widget.today.day - 1 : 0);
+    final dreams = examples
+        ? 500000
+        : widget.store.dreamsReserveFor(widget.month, widget.today);
     final allowance = budget == null
         ? null
         : DailyAllowance.calculate(
@@ -754,7 +766,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             spent: spent,
             available: income - spent,
             reserve: reserve,
-            dreams: budget.dreams,
+            dreams: dreams,
             days: days,
           );
     final progress = budget == null || budget.limit == 0
@@ -764,7 +776,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
       children: [
         ScreenTop(
           brand: true,
-          onProfile: profile,
+          onProfile: widget.onProfile ?? profile,
           onHelp: () => showKopiMessage(
             context,
             'Сколько можно сегодня',
@@ -844,7 +856,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         : () => showKopiMessage(
                             context,
                             'Твой дневной ориентир',
-                            'Лимит: ${money(budget.limit)}\nПотрачено: ${money(spent)}\nДоступный остаток: ${money(income - spent)}\nРезерв платежей: ${money(reserve)}\nНа мечты: ${money(budget.dreams)}\n${isPast ? 'Свободный остаток' : 'Осталось дней: $days\nСвободная сумма'}: ${money(allowance!.free)}\n\nРезерв — большая из двух сумм: оставшийся резерв плана или неоплаченные платежи месяца. Так запланированное не вычитается дважды.\n\nОриентир помогает планировать, а решение всегда за тобой.',
+                            'Лимит: ${money(budget.limit)}\nПотрачено: ${money(spent)}\nДоступный остаток: ${money(income - spent)}\nРезерв платежей: ${money(reserve)}\nНа мечты: ${money(dreams)}\n${isPast ? 'Свободный остаток' : 'Осталось дней: $days\nСвободная сумма'}: ${money(allowance!.free)}\n\nРезерв — большая из двух сумм: оставшийся резерв плана или неоплаченные платежи месяца. Так запланированное не вычитается дважды.\n\nОриентир помогает планировать, а решение всегда за тобой.',
                           ),
                     style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
@@ -1037,8 +1049,16 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                 ),
-                _NavItem('Мечты', Glyph.flag, onTap: () => later('Мечты')),
-                _NavItem('Обзор', Glyph.overview, onTap: () => later('Обзор')),
+                _NavItem(
+                  'Мечты',
+                  Glyph.flag,
+                  onTap: widget.onDreams ?? () => later('Мечты'),
+                ),
+                _NavItem(
+                  'Обзор',
+                  Glyph.overview,
+                  onTap: widget.onOverview ?? () => later('Обзор'),
+                ),
               ],
             ),
           ),

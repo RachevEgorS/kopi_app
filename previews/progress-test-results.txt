@@ -1,0 +1,11 @@
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart
+00:00 +0: Forecast uses actual weekly dates, ceiling, zero pace and completed goals
+00:00 +1: Goal reserve covers remaining scheduled contributions, caps remaining and avoids double reserve
+00:00 +2: Analytics excludes income, separates months and compares equal elapsed days
+00:00 +3: Streak crosses month boundary, tolerates today pending and resets after missed day
+00:00 +4: Goals, profile, preferences and permanent badges survive restart and legacy migration
+00:00 +5: Diary → create goal → preview/cancel/apply forecast → daily check → overview
+00:02 +6: Profile settings, edit, budget return, help and logout are connected
+00:03 +7: Populated progress screens fit narrow and enlarged layouts
+00:04 +8: Export remaining five screens
+00:05 +9: All tests passed!

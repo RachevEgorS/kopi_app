@@ -3,17 +3,31 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
 import 'design.dart';
-import 'screens.dart' show ScreenTop;
+import 'screens.dart' show ScreenTop, BudgetScreen;
+import '../data/progress.dart';
+import 'progress_pages.dart';
 import 'finance_pages.dart';
 import 'finance_widgets.dart';
 
-enum FinancePage { history, operation, calendar, payment, subscriptions }
+enum FinancePage {
+  history,
+  operation,
+  calendar,
+  payment,
+  subscriptions,
+  analytics,
+  goals,
+  forecast,
+  achievements,
+  profile,
+}
 
 class FinanceFlow extends StatefulWidget {
   final DiaryStore store;
   final FinancePage initial;
   final DateTime Function() clock;
   final DateTime? initialDate;
+  final String? goalId;
   final Entry? entry;
   final PaymentOccurrence? occurrence;
   final VoidCallback onBudget;
@@ -25,6 +39,7 @@ class FinanceFlow extends StatefulWidget {
     required this.clock,
     this.initialDate,
     this.entry,
+    this.goalId,
     this.occurrence,
     required this.onBudget,
     required this.onLogout,
@@ -35,10 +50,17 @@ class FinanceFlow extends StatefulWidget {
 
 class _Page {
   final FinancePage page;
+  final String? goalId;
   final Entry? entry;
   final PaymentOccurrence? occurrence;
   final bool monthly;
-  const _Page(this.page, {this.entry, this.occurrence, this.monthly = false});
+  const _Page(
+    this.page, {
+    this.entry,
+    this.goalId,
+    this.occurrence,
+    this.monthly = false,
+  });
 }
 
 class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
@@ -55,6 +77,7 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
     current = _Page(
       widget.initial,
       entry: widget.entry,
+      goalId: widget.goalId,
       occurrence: widget.occurrence,
     );
     selected = widget.initialDate ?? today;
@@ -137,91 +160,73 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
         'Что повторяется каждый месяц',
         'Здесь все ежемесячные планы и их общая сумма. Нажми на платёж, чтобы изменить его. Удаление записи в Копи не отключает подписку в сервисе.',
       ),
+      _ => (
+        'Копи рядом',
+        'Все данные сохраняются на этом устройстве. В мечтах можно задать сумму и темп накоплений, в обзоре — посмотреть расходы, а в достижениях — отметить проверку учёта.',
+      ),
     };
     showKopiMessage(context, title, message);
   }
 
-  Future<void> profile() => showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    backgroundColor: KopiColors.background,
-    builder: (ctx) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Heading(widget.store.name),
-            const SizedBox(height: 8),
-            Text(
-              widget.store.email,
-              style: const TextStyle(color: KopiColors.muted),
+  void profile() {
+    if (current.page != FinancePage.profile) {
+      open(const _Page(FinancePage.profile));
+    }
+  }
+
+  void tab(FinancePage page) {
+    if (current.page == page) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      stack.clear();
+      current = _Page(page);
+    });
+  }
+
+  Future<void> editGoal([SavingGoal? goal]) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: KopiColors.background,
+      builder: (_) =>
+          GoalEditor(store: widget.store, today: today, initial: goal),
+    );
+    if (!mounted || result == null) return;
+    if (result == 'deleted') {
+      if (current.page == FinancePage.forecast) back();
+    } else if (goal == null) {
+      open(_Page(FinancePage.forecast, goalId: result));
+    }
+  }
+
+  Future<void> budget() => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (ctx) => Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: BudgetScreen(
+                month: selected,
+                initial: widget.store.budgets[monthKey(selected)],
+                onBack: () => Navigator.pop(ctx),
+                onSave: (value) async {
+                  await widget.store.saveBudget(selected, value);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Деморежим · данные на этом устройстве',
-              style: TextStyle(fontSize: 11, color: KopiColors.berry),
-            ),
-            const SizedBox(height: 22),
-            KopiButton(
-              'Мой бюджет',
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pop(context);
-                widget.onBudget();
-              },
-            ),
-            const SizedBox(height: 12),
-            KopiButton(
-              'Регулярные платежи',
-              secondary: true,
-              onPressed: () {
-                Navigator.pop(ctx);
-                if (current.page != FinancePage.subscriptions) {
-                  open(const _Page(FinancePage.subscriptions));
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            KopiButton(
-              'История записей',
-              secondary: true,
-              onPressed: () {
-                Navigator.pop(ctx);
-                if (current.page != FinancePage.history) {
-                  open(const _Page(FinancePage.history));
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            KopiButton(
-              'Выйти из дневника',
-              secondary: true,
-              onPressed: () async {
-                Navigator.pop(ctx);
-                try {
-                  await widget.onLogout();
-                  if (mounted) Navigator.pop(context);
-                } catch (_) {
-                  if (mounted) {
-                    showKopiMessage(
-                      context,
-                      'Не получилось выйти',
-                      'Попробуй ещё раз. Записи сохранены.',
-                    );
-                  }
-                }
-              },
-            ),
-          ],
+          ),
         ),
       ),
     ),
   );
   @override
   Widget build(BuildContext context) {
+    final goal = widget.store.goals
+        .where((g) => g.id == current.goalId)
+        .firstOrNull;
     final content = switch (current.page) {
       FinancePage.history => HistoryScreen(
         store: widget.store,
@@ -274,6 +279,53 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
         onEdit: editPayment,
         onAdd: () => open(const _Page(FinancePage.payment, monthly: true)),
       ),
+      FinancePage.analytics => AnalyticsScreen(
+        store: widget.store,
+        month: selected,
+        today: today,
+        onMonth: (delta) => setState(
+          () => selected = DateTime(selected.year, selected.month + delta),
+        ),
+        onSubscriptions: () => open(const _Page(FinancePage.subscriptions)),
+        onAdd: add,
+      ),
+      FinancePage.goals => GoalsScreen(
+        store: widget.store,
+        today: today,
+        onGoal: (g) => open(_Page(FinancePage.forecast, goalId: g.id)),
+        onAdd: () => editGoal(),
+        onAchievements: () => open(const _Page(FinancePage.achievements)),
+      ),
+      FinancePage.forecast =>
+        goal == null
+            ? Center(
+                child: TextButton(
+                  onPressed: () => tab(FinancePage.goals),
+                  child: const Text('Выбрать мечту'),
+                ),
+              )
+            : ForecastScreen(
+                key: ValueKey(goal.id),
+                store: widget.store,
+                goal: goal,
+                today: today,
+                onEdit: () => editGoal(goal),
+              ),
+      FinancePage.achievements => AchievementsScreen(
+        store: widget.store,
+        today: today,
+      ),
+      FinancePage.profile => ProfileScreen(
+        store: widget.store,
+        onBudget: budget,
+        onSubscriptions: () => open(const _Page(FinancePage.subscriptions)),
+        onAchievements: () => open(const _Page(FinancePage.achievements)),
+        onHelp: () => showEducation(context),
+        onLogout: () async {
+          await widget.onLogout();
+          if (context.mounted) Navigator.pop(context);
+        },
+      ),
     };
     return PopScope(
       canPop: stack.isEmpty,
@@ -289,7 +341,11 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
               child: Column(
                 children: [
                   ScreenTop(
-                    brand: current.page == FinancePage.calendar,
+                    brand: [
+                      FinancePage.calendar,
+                      FinancePage.goals,
+                      FinancePage.analytics,
+                    ].contains(current.page),
                     onBack: back,
                     onHelp: help,
                     onProfile: profile,
@@ -303,20 +359,20 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
                           FinancePage.subscriptions,
                         ].contains(current.page)
                         ? 'calendar'
+                        : current.page == FinancePage.analytics
+                        ? 'overview'
+                        : [
+                            FinancePage.goals,
+                            FinancePage.forecast,
+                            FinancePage.achievements,
+                          ].contains(current.page)
+                        ? 'dreams'
                         : 'diary',
                     onDiary: () => Navigator.pop(context),
                     onCalendar: calendar,
                     onAdd: add,
-                    onDreams: () => showKopiMessage(
-                      context,
-                      'Мечты',
-                      'Экран целей добавим следующим этапом.',
-                    ),
-                    onOverview: () => showKopiMessage(
-                      context,
-                      'Обзор',
-                      'Экран аналитики добавим следующим этапом.',
-                    ),
+                    onDreams: () => tab(FinancePage.goals),
+                    onOverview: () => tab(FinancePage.analytics),
                   ),
                 ],
               ),

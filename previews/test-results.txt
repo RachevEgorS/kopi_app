@@ -1,0 +1,27 @@
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/diary_test.dart
+00:00 +0: C:/Users/buratino/.codex/projects/kopi-frontend/test/diary_test.dart: Parses kopecks exactly and rejects invalid amounts
+00:00 +1: C:/Users/buratino/.codex/projects/kopi-frontend/test/diary_test.dart: Specification daily allowance example and deficit
+00:00 +2: C:/Users/buratino/.codex/projects/kopi-frontend/test/diary_test.dart: Daily allowance rounds down to kopecks
+00:00 +3: C:/Users/buratino/.codex/projects/kopi-frontend/test/diary_test.dart: State survives restart, budgets stay in their months, duplicate entries are ignored
+00:01 +4: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Old saved entries migrate without losing budgets or session
+00:01 +5: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Monthly dates clamp without losing the original day, including leap years
+00:01 +6: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Income, edits and deletion update totals and persist
+00:01 +7: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Payment is saved, reserves are not doubled, paying is idempotent and reversible
+00:01 +8: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:01 +9: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:02 +10: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:02 +11: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:02 +12: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:02 +13: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:04 +14: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: First-run registration → current budget → diary → restart
+00:04 +15: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview
+00:05 +16: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview
+00:05 +17: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Calendar → payment → subscription → pay → history with linked expense
+00:06 +18: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text
+00:06 +19: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text
+00:07 +20: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:08 +21: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:08 +22: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:09 +23: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:09 +24: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Export next five screens
+00:10 +25: All tests passed!
