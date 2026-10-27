@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'data/diary.dart';
 import 'ui/design.dart';
+import 'ui/education.dart';
 import 'ui/screens.dart';
 import 'ui/finance_flow.dart';
 
@@ -216,7 +217,12 @@ class _AppFlowState extends State<AppFlow> with WidgetsBindingObserver {
               constraints: const BoxConstraints(maxWidth: 480),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 180),
-                child: KeyedSubtree(key: ValueKey(screen), child: page),
+                child: EducationHost(
+                  key: ValueKey(screen),
+                  store: store,
+                  topic: screen.name,
+                  child: page,
+                ),
               ),
             ),
           ),

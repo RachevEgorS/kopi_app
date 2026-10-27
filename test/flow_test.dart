@@ -12,7 +12,9 @@ import 'package:kopi_finance_app/ui/screens.dart';
 
 Future<DiaryStore> emptyStore() async {
   SharedPreferences.setMockInitialValues({});
-  return DiaryStore(await SharedPreferences.getInstance())..load();
+  return DiaryStore(await SharedPreferences.getInstance())
+    ..load()
+    ..educationSkipped = true;
 }
 
 Future<void> tapText(WidgetTester tester, String text) async {
@@ -55,7 +57,9 @@ void main() {
     expect(find.text('Ноябрь 2026'), findsOneWidget);
     expect(find.text('— ₽'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
-    final restored = DiaryStore(store.preferences)..load();
+    final restored = DiaryStore(store.preferences)
+      ..load()
+      ..educationSkipped = true;
     await tester.pumpWidget(
       KopiApp(store: restored, clock: () => DateTime(2026, 10, 26)),
     );

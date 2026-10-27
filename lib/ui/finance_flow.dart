@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
 import 'design.dart';
+import 'education.dart';
 import 'screens.dart' show ScreenTop, BudgetScreen;
 import '../data/progress.dart';
 import 'progress_pages.dart';
@@ -207,14 +208,18 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
-              child: BudgetScreen(
-                month: selected,
-                initial: widget.store.budgets[monthKey(selected)],
-                onBack: () => Navigator.pop(ctx),
-                onSave: (value) async {
-                  await widget.store.saveBudget(selected, value);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
+              child: EducationHost(
+                store: widget.store,
+                topic: 'budget',
+                child: BudgetScreen(
+                  month: selected,
+                  initial: widget.store.budgets[monthKey(selected)],
+                  onBack: () => Navigator.pop(ctx),
+                  onSave: (value) async {
+                    await widget.store.saveBudget(selected, value);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                ),
               ),
             ),
           ),
@@ -320,7 +325,7 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
         onBudget: budget,
         onSubscriptions: () => open(const _Page(FinancePage.subscriptions)),
         onAchievements: () => open(const _Page(FinancePage.achievements)),
-        onHelp: () => showEducation(context),
+        onHelp: () => showEducation(context, store: widget.store),
         onLogout: () async {
           await widget.onLogout();
           if (context.mounted) Navigator.pop(context);
@@ -332,49 +337,53 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) back();
       },
-      child: Scaffold(
-        backgroundColor: KopiColors.background,
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                children: [
-                  ScreenTop(
-                    brand: [
-                      FinancePage.calendar,
-                      FinancePage.goals,
-                      FinancePage.analytics,
-                    ].contains(current.page),
-                    onBack: back,
-                    onHelp: help,
-                    onProfile: profile,
-                  ),
-                  Expanded(child: content),
-                  KopiNavigation(
-                    selected:
-                        [
-                          FinancePage.calendar,
-                          FinancePage.payment,
-                          FinancePage.subscriptions,
-                        ].contains(current.page)
-                        ? 'calendar'
-                        : current.page == FinancePage.analytics
-                        ? 'overview'
-                        : [
-                            FinancePage.goals,
-                            FinancePage.forecast,
-                            FinancePage.achievements,
+      child: EducationHost(
+        store: widget.store,
+        topic: current.page.name,
+        child: Scaffold(
+          backgroundColor: KopiColors.background,
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  children: [
+                    ScreenTop(
+                      brand: [
+                        FinancePage.calendar,
+                        FinancePage.goals,
+                        FinancePage.analytics,
+                      ].contains(current.page),
+                      onBack: back,
+                      onHelp: help,
+                      onProfile: profile,
+                    ),
+                    Expanded(child: content),
+                    KopiNavigation(
+                      selected:
+                          [
+                            FinancePage.calendar,
+                            FinancePage.payment,
+                            FinancePage.subscriptions,
                           ].contains(current.page)
-                        ? 'dreams'
-                        : 'diary',
-                    onDiary: () => Navigator.pop(context),
-                    onCalendar: calendar,
-                    onAdd: add,
-                    onDreams: () => tab(FinancePage.goals),
-                    onOverview: () => tab(FinancePage.analytics),
-                  ),
-                ],
+                          ? 'calendar'
+                          : current.page == FinancePage.analytics
+                          ? 'overview'
+                          : [
+                              FinancePage.goals,
+                              FinancePage.forecast,
+                              FinancePage.achievements,
+                            ].contains(current.page)
+                          ? 'dreams'
+                          : 'diary',
+                      onDiary: () => Navigator.pop(context),
+                      onCalendar: calendar,
+                      onAdd: add,
+                      onDreams: () => tab(FinancePage.goals),
+                      onOverview: () => tab(FinancePage.analytics),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

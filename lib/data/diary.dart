@@ -227,6 +227,8 @@ class DiaryStore extends ChangeNotifier {
   List<SavingGoal> goals = [];
   Set<String> checkedDays = {}, badges = {};
   bool remindersEnabled = true, supportEnabled = true;
+  Set<String> seenEducation = {};
+  bool educationSkipped = false;
   static const storageKey = 'kopi.frontend.v1';
 
   void load() {
@@ -253,6 +255,10 @@ class DiaryStore extends ChangeNotifier {
           .toList();
       checkedDays = (json['checkedDays'] as List? ?? []).cast<String>().toSet();
       badges = (json['badges'] as List? ?? []).cast<String>().toSet();
+      seenEducation = (json['seenEducation'] as List? ?? [])
+          .cast<String>()
+          .toSet();
+      educationSkipped = json['educationSkipped'] as bool? ?? false;
       remindersEnabled = json['remindersEnabled'] as bool? ?? true;
       supportEnabled = json['supportEnabled'] as bool? ?? true;
       if (entries.isNotEmpty) badges.add('first');
@@ -286,6 +292,8 @@ class DiaryStore extends ChangeNotifier {
         'goals': goals.map((g) => g.toJson()).toList(),
         'checkedDays': checkedDays.toList(),
         'badges': badges.toList(),
+        'seenEducation': seenEducation.toList(),
+        'educationSkipped': educationSkipped,
         'remindersEnabled': remindersEnabled,
         'supportEnabled': supportEnabled,
       }),
@@ -456,6 +464,32 @@ class DiaryStore extends ChangeNotifier {
       await _save();
     } catch (_) {
       signedIn = true;
+      rethrow;
+    }
+  }
+
+  Future<void> finishEducation(String topic, {bool skipAll = false}) async {
+    final previous = Set<String>.of(seenEducation), skipped = educationSkipped;
+    seenEducation.add(topic);
+    if (skipAll) educationSkipped = true;
+    try {
+      await _save();
+    } catch (_) {
+      seenEducation = previous;
+      educationSkipped = skipped;
+      rethrow;
+    }
+  }
+
+  Future<void> resetEducation() async {
+    final previous = Set<String>.of(seenEducation), skipped = educationSkipped;
+    seenEducation = {};
+    educationSkipped = false;
+    try {
+      await _save();
+    } catch (_) {
+      seenEducation = previous;
+      educationSkipped = skipped;
       rethrow;
     }
   }

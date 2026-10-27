@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
 import 'design.dart';
+import 'education.dart';
 import 'finance_widgets.dart';
 
 const _pad = EdgeInsets.symmetric(horizontal: 28);
@@ -34,7 +35,7 @@ class ScreenTop extends StatelessWidget {
             icon: const LineIcon(Glyph.back, size: 20, color: KopiColors.ink),
           ),
         const Spacer(),
-        HelpButton(onPressed: onHelp),
+        HelpButton(onPressed: EducationHost.helpOf(context) ?? onHelp),
         if (onProfile != null)
           IconButton(
             tooltip: 'Профиль',

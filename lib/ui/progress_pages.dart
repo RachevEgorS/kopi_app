@@ -4,17 +4,11 @@ import '../data/diary.dart';
 import '../data/progress.dart';
 import 'design.dart';
 import 'finance_widgets.dart';
+import 'goal_icons.dart';
 
 const _padding = EdgeInsets.symmetric(horizontal: 28);
 const _small = TextStyle(fontSize: 12, color: KopiColors.muted, height: 1.5);
 const _gold = Color(0xFFD4B471);
-Glyph goalGlyph(SavingGoal goal) => switch (goal.icon) {
-  'leaf' => Glyph.leaf,
-  'flag' => Glyph.flag,
-  _ => Glyph.laptop,
-};
-Color goalColor(SavingGoal goal) =>
-    goal.icon == 'leaf' ? KopiColors.sage : KopiColors.lavender;
 
 class AnalyticsScreen extends StatefulWidget {
   final DiaryStore store;
@@ -321,7 +315,7 @@ class GoalsScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      _IconTile(icon: goalGlyph(goal), color: goalColor(goal)),
+                      GoalSymbol(goal.icon),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -507,13 +501,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
                 : 'Мечта становится ближе с каждым шагом.',
           ),
           const SizedBox(height: 4),
-          Center(
-            child: LineIcon(
-              goalGlyph(goal),
-              size: 48,
-              color: const Color(0xFFB39AC8),
-            ),
-          ),
+          Center(child: GoalSymbol(goal.icon, size: 48, tile: false)),
           const SizedBox(height: 24),
           Center(child: Heading(money(goal.saved), size: 36)),
           const SizedBox(height: 8),
@@ -1148,15 +1136,43 @@ class _GoalEditorState extends State<GoalEditor> {
               last: DateTime(max(next.year, widget.today.year + 20), 12, 31),
               onChanged: (date) => setState(() => next = date),
             ),
-            ChoiceField(
-              label: 'Значок',
-              value: icon,
-              choices: const {
-                'laptop': 'Ноутбук',
-                'leaf': 'Листок',
-                'flag': 'Флажок',
-              },
-              onChanged: (value) => setState(() => icon = value),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: InkWell(
+                key: const ValueKey('goal-icon-field'),
+                borderRadius: BorderRadius.circular(12),
+                onTap: busy
+                    ? null
+                    : () async {
+                        final chosen = await chooseGoalIcon(context, icon);
+                        if (chosen != null && mounted) {
+                          setState(() => icon = chosen);
+                        }
+                      },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      GoalSymbol(icon),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Значок мечты', style: _small),
+                            const SizedBox(height: 4),
+                            Text(goalIconById(icon).label),
+                          ],
+                        ),
+                      ),
+                      const Text(
+                        'Выбрать →',
+                        style: TextStyle(fontSize: 12, color: KopiColors.berry),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             const Text(
               '«Уже накоплено» — деньги, которые ты отложил отдельно. Здесь мы отмечаем прогресс; деньги не переводятся и не списываются повторно.',
@@ -1281,7 +1297,10 @@ class _ProfileEditorState extends State<ProfileEditor> {
   );
 }
 
-Future<void> showEducation(BuildContext context) => showModalBottomSheet<void>(
+Future<void> showEducation(
+  BuildContext context, {
+  DiaryStore? store,
+}) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
@@ -1326,6 +1345,30 @@ Future<void> showEducation(BuildContext context) => showModalBottomSheet<void>(
                   const SizedBox(height: 7),
                   Text(item.$2, style: _small),
                 ],
+              ),
+            ),
+          if (store != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: KopiButton(
+                'Показывать подсказки снова',
+                secondary: true,
+                onPressed: () async {
+                  try {
+                    await store.resetEducation();
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  } catch (_) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Не получилось сохранить настройку. Попробуй ещё раз.',
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
               ),
             ),
           KopiButton('Понятно', onPressed: () => Navigator.pop(ctx)),

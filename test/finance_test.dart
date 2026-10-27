@@ -14,7 +14,8 @@ import 'flow_test.dart' show tapText;
 
 Future<DiaryStore> fixture({bool sample = false}) async {
   SharedPreferences.setMockInitialValues({});
-  final store = DiaryStore(await SharedPreferences.getInstance());
+  final store = DiaryStore(await SharedPreferences.getInstance())
+    ..educationSkipped = true;
   await store.enterDemo('Аня', 'anya@example.ru');
   await store.saveBudget(
     DateTime(2026, 10),
