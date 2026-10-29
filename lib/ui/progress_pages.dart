@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
+import '../data/cloud_diary.dart';
+import '../data/cloud_errors.dart';
 import '../data/progress.dart';
 import 'design.dart';
 import 'finance_widgets.dart';
@@ -900,6 +902,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          if (store is CloudDiaryStore) ...[
+            TextButton.icon(
+              onPressed: store.refreshing ? null : store.refreshCloud,
+              icon: const Icon(Icons.sync, size: 18),
+              label: Text(
+                store.refreshing
+                    ? 'Обновляем дневник…'
+                    : 'Обновить из аккаунта',
+              ),
+            ),
+            if (store.pendingEmail != null)
+              Text(
+                'Подтверди новый адрес ${store.pendingEmail} по ссылкам в письмах.',
+                style: _small,
+              ),
+          ],
           _SettingRow(
             'Мой бюджет',
             'Доходы, лимиты и резервы',
@@ -916,7 +934,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _SettingRow(
             'Напоминания',
-            'Настройка демонстрационного режима',
+            'Настройка сохранена; уведомления появятся позже',
             Glyph.bell,
             KopiColors.sand,
             value: store.remindersEnabled ? 'Вкл.' : 'Выкл.',
@@ -998,7 +1016,7 @@ class _GoalEditorState extends State<GoalEditor> {
   void initState() {
     super.initState();
     final goal = widget.initial;
-    id = goal?.id ?? 'goal-${DateTime.now().microsecondsSinceEpoch}';
+    id = goal?.id ?? widget.store.newId();
     title = TextEditingController(text: goal?.title ?? '');
     target = TextEditingController(
       text: goal == null ? '' : money(goal.target, currency: false),
@@ -1234,11 +1252,11 @@ class _ProfileEditorState extends State<ProfileEditor> {
     try {
       await widget.store.saveProfile(name.text, email.text);
       if (mounted) Navigator.pop(context);
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
           busy = false;
-          error = 'Не получилось сохранить профиль.';
+          error = cloudError(e);
         });
       }
     }
@@ -1283,7 +1301,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
                   : 'Проверь адрес почты',
             ),
             const Text(
-              'Изменения сохраняются в демопрофиле на этом устройстве. Письмо подтверждения не отправляется.',
+              'При смене почты подтверди новый адрес по ссылкам в письмах. До подтверждения вход работает с прежней почтой.',
               style: _small,
             ),
             const SizedBox(height: 20),
@@ -1332,8 +1350,8 @@ Future<void> showEducation(
               'Проверяй учёт, даже если сегодня не было трат. Одна отметка в день продолжает серию. Значки выдаются за внимание и прогресс, а не за отказ от необходимого.',
             ),
             (
-              'Пока это деморежим',
-              'Данные сохраняются на этом устройстве. Настройки напоминаний не отправляют уведомления. Копи не переводит деньги и не отменяет подписки.',
+              'Твой аккаунт',
+              'Финансовые данные сохраняются в аккаунте и доступны после входа. Обучение и отметки дней пока хранятся на устройстве отдельно для каждого аккаунта. Напоминания пока не отправляются. Копи не переводит деньги и не отменяет подписки.',
             ),
           ])
             Padding(

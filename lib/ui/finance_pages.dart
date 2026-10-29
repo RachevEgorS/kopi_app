@@ -141,7 +141,7 @@ class _OperationScreenState extends State<OperationScreen> {
   void initState() {
     super.initState();
     final e = widget.initial;
-    id = e?.id ?? 'entry-${DateTime.now().microsecondsSinceEpoch}';
+    id = e?.id ?? widget.store.newId();
     income = e?.isIncome ?? false;
     category = e?.category ?? 'Кафе';
     date = e?.date ?? dateOnly(widget.today);
@@ -549,7 +549,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void initState() {
     super.initState();
     final p = widget.initial;
-    id = p?.id ?? 'plan-${DateTime.now().microsecondsSinceEpoch}';
+    id = p?.id ?? widget.store.newId();
     title = TextEditingController(text: p?.title ?? '');
     amount = TextEditingController(
       text: p == null ? '' : money(p.amount, currency: false),

@@ -10,7 +10,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  http: ^1.6.0
   shared_preferences: ^2.5.3
+  supabase_flutter: ^2.18.3
+  uuid: ^4.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

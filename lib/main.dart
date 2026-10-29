@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'data/cloud_config.dart';
+import 'data/cloud_diary.dart';
+import 'data/cloud_errors.dart';
+import 'ui/cloud_status.dart';
 import 'data/diary.dart';
 import 'ui/design.dart';
 import 'ui/education.dart';
@@ -19,8 +24,94 @@ Future<void> main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  final store = DiaryStore(await SharedPreferences.getInstance())..load();
-  runApp(KopiApp(store: store));
+  runApp(const ConnectedKopiApp());
+}
+
+class ConnectedKopiApp extends StatefulWidget {
+  const ConnectedKopiApp({super.key});
+  @override
+  State<ConnectedKopiApp> createState() => _ConnectedKopiAppState();
+}
+
+class _ConnectedKopiAppState extends State<ConnectedKopiApp>
+    with WidgetsBindingObserver {
+  CloudDiaryStore? store;
+  String? error;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    boot();
+  }
+
+  Future<void> boot() async {
+    setState(() => error = null);
+    try {
+      await Supabase.initialize(
+        url: CloudConfig.url,
+        publishableKey: CloudConfig.publishableKey,
+        httpClient: KopiHttpClient(),
+      );
+      final next = CloudDiaryStore(
+        await SharedPreferences.getInstance(),
+        Supabase.instance.client,
+      );
+      if (!mounted) {
+        next.dispose();
+        return;
+      }
+      setState(() => store = next);
+      await next.start();
+    } catch (e) {
+      if (mounted) setState(() => error = cloudError(e));
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        store?.recoveringPassword != true) {
+      unawaited(store?.refreshCloud());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    store?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final diary = store;
+    if (diary == null || error != null) {
+      return cloudShell(CloudStatusScreen(error: error, onRetry: boot));
+    }
+    return AnimatedBuilder(
+      animation: diary,
+      builder: (context, _) {
+        if (diary.loading) return cloudShell(const CloudStatusScreen());
+        if (diary.recoveringPassword) {
+          return cloudShell(RecoveryScreen(store: diary));
+        }
+        if (diary.userId != null && !diary.signedIn) {
+          return cloudShell(
+            CloudStatusScreen(
+              error: diary.connectionError,
+              onRetry: diary.refreshCloud,
+              onLogout: diary.logout,
+            ),
+          );
+        }
+        // A different account gets a new Navigator as well as an empty store.
+        return KopiApp(
+          key: ValueKey(diary.userId ?? 'signed-out'),
+          store: diary,
+        );
+      },
+    );
+  }
 }
 
 class KopiApp extends StatelessWidget {
@@ -35,6 +126,41 @@ class KopiApp extends StatelessWidget {
     locale: const Locale('ru'),
     supportedLocales: const [Locale('ru')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    builder: (context, child) {
+      final cloud = store is CloudDiaryStore ? store as CloudDiaryStore : null;
+      if (cloud?.connectionError == null || !store.signedIn) return child!;
+      return Column(
+        children: [
+          Material(
+            color: KopiColors.soft,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        cloud!.connectionError!,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: cloud.refreshing ? null : cloud.refreshCloud,
+                      child: const Text('Обновить'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(child: child!),
+        ],
+      );
+    },
     home: AppFlow(store: store, clock: clock ?? DateTime.now),
   );
 }

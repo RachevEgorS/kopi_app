@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'progress.dart';
 
 const monthNames = [
@@ -218,6 +219,15 @@ class DailyAllowance {
 class DiaryStore extends ChangeNotifier {
   final SharedPreferences preferences;
   DiaryStore(this.preferences);
+  bool get isCloud => false;
+  String newId() => const Uuid().v4();
+  Future<bool> authenticate({
+    required String email,
+    required String password,
+    String? name,
+  }) => throw UnsupportedError('Облачный вход не настроен');
+  Future<void> resetPassword(String email) =>
+      throw UnsupportedError('Восстановление не настроено');
   bool introduced = false, signedIn = false, setupDone = false;
   bool recovered = false;
   String name = '', email = '';

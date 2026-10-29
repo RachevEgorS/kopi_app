@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
+import '../data/cloud_errors.dart';
 import 'design.dart';
 import 'education.dart';
 import 'finance_widgets.dart';
@@ -189,6 +190,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> submit() async {
     if (busy || confirming || !form.currentState!.validate()) return;
+    if (widget.store.isCloud) {
+      await submitCloud();
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       confirming = true;
@@ -239,6 +244,78 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> submitCloud() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final ready = await widget.store.authenticate(
+        email: email.text,
+        password: password.text,
+        name: widget.register ? name.text : null,
+      );
+      if (!mounted) return;
+      password.clear();
+      setState(() => busy = false);
+      if (ready) {
+        widget.onComplete();
+        return;
+      }
+      await showKopiMessage(
+        context,
+        'Проверь почту',
+        'Если адрес доступен для регистрации, на ${email.text.trim()} придёт письмо. Подтверди почту по ссылке и вернись в Копи, чтобы войти. Проверь также папку «Спам».',
+      );
+      if (mounted && widget.register) widget.onSwitch();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          busy = false;
+          error = cloudError(e);
+        });
+      }
+    }
+  }
+
+  Future<void> forgotPassword() async {
+    if (busy) return;
+    if (!widget.store.isCloud) {
+      await showKopiMessage(
+        context,
+        'Восстановление доступа',
+        'В локальном примере восстановление не подключено.',
+      );
+      return;
+    }
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email.text.trim())) {
+      setState(() => error = 'Сначала укажи свою почту в поле выше.');
+      return;
+    }
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      await widget.store.resetPassword(email.text);
+      if (!mounted) return;
+      setState(() => busy = false);
+      await showKopiMessage(
+        context,
+        'Письмо для восстановления',
+        'Если аккаунт с этой почтой существует, придёт ссылка для смены пароля. Открой её на этом устройстве.',
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          busy = false;
+          error = cloudError(e);
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     child: AutofillGroup(
@@ -250,7 +327,7 @@ class _AuthScreenState extends State<AuthScreen> {
             onHelp: () => showKopiMessage(
               context,
               widget.register ? 'Всего три поля' : 'С возвращением',
-              'Это первая версия интерфейса. Для знакомства с дневником введи вымышленные данные. Сетевой вход и восстановление пароля появятся после подключения аккаунтов.',
+              'Введи свою почту и пароль. После регистрации подтверди адрес по ссылке в письме. Если забыл пароль, укажи почту и нажми «Не помню пароль».',
             ),
           ),
           Padding(
@@ -284,6 +361,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       autofillHints: const [AutofillHints.givenName],
                       validator: (v) => (v ?? '').trim().length < 2
                           ? 'Введи имя, хотя бы 2 символа'
+                          : (v ?? '').trim().length > 80
+                          ? 'Не больше 80 символов'
                           : null,
                     ),
                   KopiField(
@@ -306,8 +385,15 @@ class _AuthScreenState extends State<AuthScreen> {
                     password: true,
                     action: TextInputAction.done,
                     onSubmitted: (_) => submit(),
-                    validator: (v) => (v ?? '').length < 8
+                    autofillHints: [
+                      widget.register
+                          ? AutofillHints.newPassword
+                          : AutofillHints.password,
+                    ],
+                    validator: (v) => widget.register && (v ?? '').length < 8
                         ? 'Нужно не менее 8 символов'
+                        : (v ?? '').isEmpty
+                        ? 'Введи пароль'
                         : null,
                   ),
                   if (!widget.register)
@@ -319,11 +405,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           alignment: Alignment.centerLeft,
                           minimumSize: const Size(48, 48),
                         ),
-                        onPressed: () => showKopiMessage(
-                          context,
-                          'Восстановление доступа',
-                          'Восстановление по почте будет доступно после подключения аккаунтов. Письмо сейчас не отправляется. В деморежиме можно продолжить с вымышленной почтой и любым паролем от 8 символов.',
-                        ),
+                        onPressed: busy ? null : forgotPassword,
                         child: const Text(
                           'Не помню пароль',
                           style: TextStyle(fontSize: 11),
@@ -606,9 +688,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 style: const TextStyle(color: KopiColors.muted),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Деморежим · данные на этом устройстве',
-                style: TextStyle(fontSize: 11, color: KopiColors.berry),
+              Text(
+                widget.store.isCloud
+                    ? 'Дневник сохранён в твоём аккаунте'
+                    : 'Деморежим · данные на этом устройстве',
+                style: const TextStyle(fontSize: 11, color: KopiColors.berry),
               ),
               const SizedBox(height: 20),
               KopiButton(
@@ -1262,7 +1346,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     try {
       await widget.store.addEntry(
         Entry(
-          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          id: widget.store.newId(),
           title: note.text.trim().isEmpty ? category : note.text.trim(),
           category: category,
           amount: parseMoney(amount.text)!,

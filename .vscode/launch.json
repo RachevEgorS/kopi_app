@@ -1,6 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
+  
     {
       "name": "Копи — Pixel 9",
       "type": "dart",
