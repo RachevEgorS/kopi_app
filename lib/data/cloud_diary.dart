@@ -6,6 +6,7 @@ import 'cloud_config.dart';
 import 'cloud_errors.dart';
 import 'diary.dart';
 import 'progress.dart';
+import 'notification_import.dart';
 
 /// Server-confirmed writes; the old demo store is never uploaded or overwritten.
 class CloudDiaryStore extends DiaryStore {
@@ -64,8 +65,9 @@ class CloudDiaryStore extends DiaryStore {
     _loadLocal();
     _notify();
     final task = () async {
-      if (user == null) return;
       try {
+        await NotificationBridge.account(user?.id);
+        if (user == null) return;
         await _download(user.id, epoch);
         if (epoch != _epoch) return;
         signedIn = true;
@@ -352,8 +354,99 @@ class CloudDiaryStore extends DiaryStore {
 
   @override
   Future<void> logout() async {
+    await NotificationBridge.account(null);
     await client.auth.signOut(scope: SignOutScope.local);
     await _activate(null);
+  }
+
+  bool _importingNotifications = false;
+  Future<void> importNotification(Map<String, dynamic> notification) async {
+    final owner = userId;
+    if (owner == null || notification['owner'] != owner) {
+      throw StateError('Аккаунт изменился');
+    }
+    final operation = parseBankNotification(notification['text'] as String);
+    if (operation == null) throw StateError('Не удалось распознать операцию');
+    final source = notification['id'] as String;
+    final id = const Uuid().v5(
+      Namespace.url.value,
+      'kopi:notification:$owner:$source',
+    );
+    late Entry saved;
+    await _write(
+      (user) async {
+        await client
+            .from('transactions')
+            .upsert(
+              {
+                'id': id,
+                'user_id': user,
+                'kind': operation.income ? 'income' : 'expense',
+                'amount_kopecks': operation.amount,
+                'title': operation.title,
+                'category': operation.category,
+                'occurred_on': dayKey(
+                  DateTime.fromMillisecondsSinceEpoch(
+                    notification['timestamp'] as int,
+                  ),
+                ),
+                'source': 'notification',
+                'source_ref': source,
+              },
+              onConflict: 'id',
+              ignoreDuplicates: true,
+            );
+        saved = entryFromRow(
+          await client
+              .from('transactions')
+              .select()
+              .eq('user_id', user)
+              .eq('id', id)
+              .single(),
+        );
+      },
+      () {
+        entries = [...entries.where((e) => e.id != id), saved];
+        badges.add('first');
+      },
+    );
+    if (userId == owner) await NotificationBridge.ack(owner, source);
+  }
+
+  Future<void> importAutomaticNotifications() async {
+    if (!NotificationBridge.supported ||
+        !signedIn ||
+        _importingNotifications ||
+        recoveringPassword) {
+      return;
+    }
+    final owner = userId!;
+    _importingNotifications = true;
+    try {
+      final status = await NotificationBridge.status(owner);
+      if (status['permission'] != true ||
+          status['enabled'] != true ||
+          status['automatic'] != true) {
+        return;
+      }
+      for (final row in await NotificationBridge.pending(owner)) {
+        if (userId != owner || !signedIn) return;
+        final current = await NotificationBridge.status(owner);
+        if (current['enabled'] != true ||
+            current['automatic'] != true ||
+            current['permission'] != true) {
+          return;
+        }
+        if (!(current['packages'] as List).contains(row['package'])) continue;
+        if (parseBankNotification(row['text'] as String) != null) {
+          await importNotification(row);
+        }
+      }
+    } catch (_) {
+      // Keep pending items for retry/review. Never acknowledge a failed write.
+    } finally {
+      _importingNotifications = false;
+    }
   }
 
   @override

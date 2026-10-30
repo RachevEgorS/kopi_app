@@ -36,11 +36,16 @@ class ConnectedKopiApp extends StatefulWidget {
 class _ConnectedKopiAppState extends State<ConnectedKopiApp>
     with WidgetsBindingObserver {
   CloudDiaryStore? store;
+  Timer? notificationTimer;
+  bool foreground = true;
   String? error;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    notificationTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (foreground) unawaited(store?.importAutomaticNotifications());
+    });
     boot();
   }
 
@@ -69,6 +74,7 @@ class _ConnectedKopiAppState extends State<ConnectedKopiApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    foreground = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed &&
         store?.recoveringPassword != true) {
       unawaited(store?.refreshCloud());
@@ -77,6 +83,7 @@ class _ConnectedKopiAppState extends State<ConnectedKopiApp>
 
   @override
   void dispose() {
+    notificationTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     store?.dispose();
     super.dispose();

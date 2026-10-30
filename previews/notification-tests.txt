@@ -1,0 +1,66 @@
+
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart                                                                                                         
+00:01 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart                                                                                                         
+00:02 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart                                                                                                         
+00:02 +0: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +0: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +1: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +2: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +3: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +4: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +5: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +6: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +7: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +8: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +9: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                       
+00:03 +10: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:03 +11: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:03 +12: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:03 +13: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:03 +14: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:03 +15: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:04 +15: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:04 +16: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:05 +17: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:05 +18: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:05 +19: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:05 +20: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_auth_ui_test.dart: Cloud signup asks for email confirmation                                                                      
+00:05 +21: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +22: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +23: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +24: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +25: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +26: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +27: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +28: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +29: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:05 +30: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:06 +30: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:07 +30: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens                                      
+00:07 +31: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary                                                          
+00:08 +31: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary                                                          
+00:08 +32: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: First-run registration → current budget → diary → restart                                                              
+00:08 +33: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview                                       
+00:09 +33: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview                                       
+00:09 +34: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview                                       
+00:09 +35: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Calendar → payment → subscription → pay → history with linked expense                                               
+00:09 +36: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Calendar → payment → subscription → pay → history with linked expense                                               
+00:10 +36: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Calendar → payment → subscription → pay → history with linked expense                                               
+00:10 +37: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: Search/select icon updates editor, saved card and forecast after reload                                     
+00:10 +38: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Profile settings, edit, budget return, help and logout are connected                                               
+00:11 +38: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Profile settings, edit, budget return, help and logout are connected                                               
+00:11 +39: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text                                                                      
+00:11 +40: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text                                                                      
+00:12 +40: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text                                                                      
+00:13 +40: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text                                                                      
+00:13 +41: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard                                           
+00:13 +42: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard                                           
+00:14 +42: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard                                           
+00:14 +43: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard                                           
+00:14 +44: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard                                           
+00:15 +44: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard                                           
+00:15 +45: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: Export onboarding card and goal icon picker                                                                 
+00:16 +45: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: Export onboarding card and goal icon picker                                                                 
+00:16 +46: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Export next five screens                                                                                            
+00:16 +47: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Export next five screens                                                                                            
+00:16 +47: All tests passed!                                                                                                                                                                           

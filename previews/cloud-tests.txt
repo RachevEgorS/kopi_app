@@ -1,0 +1,42 @@
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart
+00:00 +0: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: signup awaiting email does not open a diary; invalid login leaves signed out
+00:00 +1: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: signup awaiting email does not open a diary; invalid login leaves signed out
+00:00 +2: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: signup awaiting email does not open a diary; invalid login leaves signed out
+00:00 +3: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: signup awaiting email does not open a diary; invalid login leaves signed out
+00:00 +4: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: signup awaiting email does not open a diary; invalid login leaves signed out
+00:00 +5: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: financial CRUD survives a new store and never changes demo data
+00:00 +6: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: failed writes keep saved state and a retry uses the same operation ID
+00:00 +7: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: account switch clears data and keeps local achievements scoped
+00:00 +8: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: late write cannot populate a different account after logout
+00:00 +9: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: late refresh cannot replace the next account data
+00:00 +10: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: loads more than default API page size without truncating history
+00:00 +11: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: failed initial download can retry without logout
+00:00 +12: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: marking a payment uses a stable UUID and records an expense once
+00:01 +13: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: 48 unique icon ids and backward-compatible existing goal symbols
+00:01 +14: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:01 +15: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:01 +16: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:01 +17: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:01 +18: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:02 +19: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:02 +20: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:02 +21: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:02 +22: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:02 +23: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: First-visit cards close, do not repeat, skip persists and help reopens
+00:04 +24: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Diary → history → income → filtered history → edit → diary
+00:05 +25: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: First-run registration → current budget → diary → restart
+00:05 +26: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview
+00:05 +27: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Diary → create goal → preview/cancel/apply forecast → daily check → overview
+00:06 +28: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Calendar → payment → subscription → pay → history with linked expense
+00:06 +29: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Calendar → payment → subscription → pay → history with linked expense
+00:06 +30: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: Search/select icon updates editor, saved card and forecast after reload
+00:07 +31: C:/Users/buratino/.codex/projects/kopi-frontend/test/progress_test.dart: Profile settings, edit, budget return, help and logout are connected
+00:07 +32: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text
+00:07 +33: C:/Users/buratino/.codex/projects/kopi-frontend/test/flow_test.dart: Five screens fit narrow screens and enlarged text
+00:09 +34: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:09 +35: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:10 +36: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:10 +37: C:/Users/buratino/.codex/projects/kopi-frontend/test/finance_test.dart: Five new screens render on narrow devices with enlarged text and keyboard
+00:10 +38: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: Export onboarding card and goal icon picker
+00:11 +39: C:/Users/buratino/.codex/projects/kopi-frontend/test/education_icons_test.dart: Export onboarding card and goal icon picker
+00:11 +40: All tests passed!

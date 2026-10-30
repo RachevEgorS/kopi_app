@@ -1,0 +1,16 @@
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart
+00:00 +0: C:/Users/buratino/.codex/projects/kopi-frontend/test/notification_import_test.dart: RUB purchases separate amount from balance and classify groceries
+00:00 +1: C:/Users/buratino/.codex/projects/kopi-frontend/test/notification_import_test.dart: salary, decimal rubles and refunds are income
+00:00 +2: C:/Users/buratino/.codex/projects/kopi-frontend/test/notification_import_test.dart: reject codes, balances, ambiguous, failed, scheduled and unsupported money
+00:00 +3: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: signup awaiting email does not open a diary; invalid login leaves signed out
+00:00 +4: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: financial CRUD survives a new store and never changes demo data
+00:00 +5: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: failed writes keep saved state and a retry uses the same operation ID
+00:00 +6: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: account switch clears data and keeps local achievements scoped
+00:00 +7: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: late write cannot populate a different account after logout
+00:00 +8: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: late refresh cannot replace the next account data
+00:00 +9: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: loads more than default API page size without truncating history
+00:00 +10: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: failed initial download can retry without logout
+00:00 +11: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: notification import retries without duplicates, never uploads raw text, rejects another owner
+00:00 +12: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: automatic import stops when disabled during a batch
+00:00 +13: C:/Users/buratino/.codex/projects/kopi-frontend/test/cloud_diary_test.dart: marking a payment uses a stable UUID and records an expense once
+00:00 +14: All tests passed!

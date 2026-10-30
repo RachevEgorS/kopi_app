@@ -7,6 +7,7 @@ import '../data/progress.dart';
 import 'design.dart';
 import 'finance_widgets.dart';
 import 'goal_icons.dart';
+import 'notification_settings.dart';
 
 const _padding = EdgeInsets.symmetric(horizontal: 28);
 const _small = TextStyle(fontSize: 12, color: KopiColors.muted, height: 1.5);
@@ -903,6 +904,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           if (store is CloudDiaryStore) ...[
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => NotificationSettingsScreen(store: store),
+                ),
+              ),
+              icon: const Icon(Icons.notifications_none, size: 18),
+              label: const Text('Уведомления банков'),
+            ),
             TextButton.icon(
               onPressed: store.refreshing ? null : store.refreshCloud,
               icon: const Icon(Icons.sync, size: 18),

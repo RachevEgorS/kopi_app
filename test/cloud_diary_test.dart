@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -36,8 +38,19 @@ class FakeCloud {
   late final client = SupabaseClient(
     'https://test.supabase.co',
     'test-public-key',
-    authOptions: const AuthClientOptions(autoRefreshToken: false),
-    httpClient: MockClient(handle),
+    authOptions: const AuthClientOptions(
+      autoRefreshToken: false,
+      authFlowType: AuthFlowType.implicit,
+    ),
+    httpClient: MockClient((request) async {
+      final result = await handle(request);
+      return http.Response.bytes(
+        result.bodyBytes,
+        result.statusCode,
+        headers: result.headers,
+        request: request,
+      );
+    }),
   );
 
   Map<String, dynamic> user(String id) => {
@@ -67,15 +80,17 @@ class FakeCloud {
     if (path.endsWith('/logout')) return http.Response('', 204);
     if (path.endsWith('/recover')) return response({});
     if (path.endsWith('/token') || path.endsWith('/signup')) {
-      if (rejectLogin)
+      if (rejectLogin) {
         return response({
           'code': 'invalid_credentials',
           'message': 'Invalid login credentials',
         }, 400);
+      }
       final input = jsonDecode(request.body) as Map<String, dynamic>;
       final id = input['email'] == 'bob@example.com' ? bob : alice;
-      if (path.endsWith('/signup') && requireConfirmation)
+      if (path.endsWith('/signup') && requireConfirmation) {
         return response(user(id));
+      }
       return response({
         'access_token': token(id),
         'refresh_token': 'refresh-$id',
@@ -84,8 +99,9 @@ class FakeCloud {
         'user': user(id),
       });
     }
-    if (!path.contains('/rest/v1/'))
+    if (!path.contains('/rest/v1/')) {
       throw StateError('Unexpected request: $path');
+    }
     final table = path.split('/').last;
     final rows = tables[table]!;
     final query = request.url.queryParameters;
@@ -99,8 +115,9 @@ class FakeCloud {
       holdRead = null;
       final result = rows.where(matches).map((e) => {...e}).toList();
       if (gate != null) await gate.future;
-      if (failRead)
+      if (failRead) {
         return response({'code': 'PGRST205', 'message': 'missing table'}, 404);
+      }
       if (request.headers['accept']?.contains('object+json') ?? false) {
         return result.length == 1
             ? response(result.single)
@@ -128,9 +145,9 @@ class FakeCloud {
             ),
           )
           .firstOrNull;
-      if (existing == null)
+      if (existing == null) {
         rows.add({...values});
-      else if (!(request.headers['prefer'] ?? '').contains(
+      } else if (!(request.headers['prefer'] ?? '').contains(
         'ignore-duplicates',
       )) {
         existing.addAll(values);
@@ -383,6 +400,91 @@ void main() {
     await store.refreshCloud();
     expect(store.signedIn, isTrue);
     expect(store.connectionError, isNull);
+  });
+
+  test(
+    'notification import retries without duplicates, never uploads raw text, rejects another owner',
+    () async {
+      var acknowledgements = 0;
+      const channel = MethodChannel('kopi/notifications');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'ack') acknowledgements++;
+            return null;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null),
+      );
+      await login();
+      final row = {
+        'owner': alice,
+        'id': 'bank-event-1',
+        'text': 'Покупка 450 ₽ Пятёрочка. Баланс 12000 ₽',
+        'timestamp': DateTime(2026, 10, 29).millisecondsSinceEpoch,
+        'package': 'bank.test',
+      };
+      cloud.failWrite = true;
+      await expectLater(
+        store.importNotification(row),
+        throwsA(isA<PostgrestException>()),
+      );
+      expect(acknowledgements, 0);
+      cloud.failWrite = false;
+      await store.importNotification(row);
+      await store.importNotification(row);
+      expect(store.entries, hasLength(1));
+      expect(cloud.tables['transactions'], hasLength(1));
+      final saved = cloud.tables['transactions']!.single;
+      expect(saved['source'], 'notification');
+      expect(saved['source_ref'], 'bank-event-1');
+      expect(saved.containsKey('text'), false);
+      expect(saved.containsKey('note'), false);
+      await expectLater(
+        store.importNotification({...row, 'owner': bob}),
+        throwsStateError,
+      );
+    },
+  );
+
+  test('automatic import stops when disabled during a batch', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    var enabled = true;
+    const channel = MethodChannel('kopi/notifications');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'status') {
+        return {
+          'enabled': enabled,
+          'automatic': true,
+          'permission': true,
+          'packages': ['bank.test'],
+        };
+      }
+      if (call.method == 'pending') {
+        return [
+          for (final id in ['first', 'second'])
+            {
+              'id': id,
+              'owner': alice,
+              'package': 'bank.test',
+              'text': 'Покупка 450 ₽',
+              'timestamp': DateTime(2026, 10, 29).millisecondsSinceEpoch,
+            },
+        ];
+      }
+      if (call.method == 'ack') enabled = false;
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(channel, null);
+      debugDefaultTargetPlatformOverride = null;
+    });
+    await login();
+    await store.importAutomaticNotifications();
+    expect(store.entries, hasLength(1));
+    expect(cloud.tables['transactions']!.single['source_ref'], 'first');
   });
 
   test(
