@@ -488,6 +488,84 @@ void main() {
   });
 
   test(
+    'automatic import leaves confirmed and editing proposals to their own flow',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      const channel = MethodChannel('kopi/notifications');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'status') {
+              return {
+                'permission': true,
+                'enabled': true,
+                'automatic': true,
+                'packages': ['bank.test'],
+              };
+            }
+            if (call.method == 'pending') {
+              return [
+                for (final state in ['confirmed', 'editing'])
+                  {
+                    'id': state,
+                    'owner': alice,
+                    state: true,
+                    'package': 'bank.test',
+                    'text': 'Покупка 850 ₽',
+                    'timestamp': DateTime(2026, 10, 30).millisecondsSinceEpoch,
+                  },
+              ];
+            }
+            return null;
+          });
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+      await login();
+      await store.importAutomaticNotifications();
+      expect(cloud.tables['transactions'], isEmpty);
+    },
+  );
+
+  test(
+    'background confirmation revision refreshes diary even with automatic import off',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      const channel = MethodChannel('kopi/notifications');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'status') {
+              return {
+                'revision': 1,
+                'permission': false,
+                'enabled': true,
+                'automatic': false,
+              };
+            }
+            return null;
+          });
+      addTearDown(() {
+        debugDefaultTargetPlatformOverride = null;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+      await login();
+      cloud.tables['transactions']!.add({
+        'id': 'background-entry',
+        'user_id': alice,
+        'kind': 'expense',
+        'amount_kopecks': 85000,
+        'category': 'Продукты',
+        'title': 'Продукты',
+        'occurred_on': '2026-10-30',
+      });
+      await store.importAutomaticNotifications();
+      expect(store.entries.single.amount, 85000);
+    },
+  );
+
+  test(
     'marking a payment uses a stable UUID and records an expense once',
     () async {
       await login();

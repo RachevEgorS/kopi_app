@@ -36,6 +36,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+    testOptions { unitTests.isIncludeAndroidResources = true }
 }
 
 kotlin {
@@ -46,4 +47,21 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.work:work-runtime:2.10.1")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    // Android Studio's bundled JDK 25 requires a bytecode reader that supports class version 69.
+    testImplementation("org.ow2.asm:asm:9.9")
+    testImplementation("org.ow2.asm:asm-tree:9.9")
+    testImplementation("org.ow2.asm:asm-commons:9.9")
+    testImplementation("org.ow2.asm:asm-util:9.9")
+    testImplementation("androidx.work:work-testing:2.10.1")
+}
+
+// Flutter copies assets outside AGP's unit-test dependency graph.
+tasks.matching { it.name == "packageDebugUnitTestForUnitTest" }.configureEach {
+    dependsOn("copyFlutterAssetsDebug")
 }

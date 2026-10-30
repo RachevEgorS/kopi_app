@@ -1,0 +1,3 @@
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/notification_editor_test.dart
+00:00 +0: editing a proposal queues corrected fields without ordinary transaction update
+00:02 +1: All tests passed!

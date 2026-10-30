@@ -105,12 +105,14 @@ class OperationScreen extends StatefulWidget {
   final DateTime today;
   final Entry? initial;
   final VoidCallback onComplete;
+  final Future<void> Function(Entry)? onSubmit;
   const OperationScreen({
     super.key,
     required this.store,
     required this.today,
     this.initial,
     required this.onComplete,
+    this.onSubmit,
   });
   @override
   State<OperationScreen> createState() => _OperationScreenState();
@@ -175,7 +177,9 @@ class _OperationScreenState extends State<OperationScreen> {
       paymentOccurrence: widget.initial?.paymentOccurrence,
     );
     try {
-      if (widget.initial == null) {
+      if (widget.onSubmit != null) {
+        await widget.onSubmit!(entry);
+      } else if (widget.initial == null) {
         await widget.store.addEntry(entry);
       } else {
         await widget.store.updateEntry(entry);
@@ -224,7 +228,11 @@ class _OperationScreenState extends State<OperationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           FinanceHeading(
-            widget.initial == null ? 'Новая запись' : 'Твоя запись',
+            widget.onSubmit != null
+                ? 'Запись из уведомления'
+                : widget.initial == null
+                ? 'Новая запись'
+                : 'Твоя запись',
             'Пара секунд — и всё на своём месте.',
           ),
           SoftSegments(
@@ -294,7 +302,7 @@ class _OperationScreenState extends State<OperationScreen> {
             onPressed: save,
             busy: busy,
           ),
-          if (widget.initial != null)
+          if (widget.initial != null && widget.onSubmit == null)
             Center(
               child: TextButton(
                 onPressed: busy ? null : remove,

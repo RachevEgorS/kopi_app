@@ -13,6 +13,8 @@ import 'ui/design.dart';
 import 'ui/education.dart';
 import 'ui/screens.dart';
 import 'ui/finance_flow.dart';
+import 'data/notification_import.dart';
+import 'ui/notification_editor.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -187,6 +189,7 @@ class _AppFlowState extends State<AppFlow> with WidgetsBindingObserver {
   late DateTime selectedMonth;
   late DateTime today;
   Timer? timer;
+  bool openingNotification = false;
   bool editingBudget = false;
   DiaryStore get store => widget.store;
 
@@ -200,7 +203,37 @@ class _AppFlowState extends State<AppFlow> with WidgetsBindingObserver {
         : (store.introduced ? Screen.login : Screen.welcome);
     WidgetsBinding.instance.addObserver(this);
     store.addListener(refresh);
-    timer = Timer.periodic(const Duration(seconds: 30), (_) => checkDate());
+    timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      checkDate();
+      unawaited(checkNotificationAction());
+    });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => checkNotificationAction(),
+    );
+  }
+
+  Future<void> checkNotificationAction() async {
+    if (!mounted ||
+        openingNotification ||
+        !store.signedIn ||
+        store is! CloudDiaryStore ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused) {
+      return;
+    }
+    final cloud = store as CloudDiaryStore;
+    final owner = cloud.userId;
+    if (owner == null) return;
+    openingNotification = true;
+    try {
+      final row = await NotificationBridge.takeAction(owner);
+      if (row != null && mounted && cloud.userId == owner) {
+        await openNotificationEditor(context, cloud, row);
+      }
+    } catch (_) {
+      /* The message remains available in notification settings. */
+    } finally {
+      openingNotification = false;
+    }
   }
 
   void refresh() {

@@ -53,7 +53,7 @@ class CloudDiaryStore extends DiaryStore {
     if (!loading && user?.id == userId) {
       email = user?.email ?? '';
       _notify();
-      return Future.value();
+      return _syncNotificationSession();
     }
     final epoch = ++_epoch;
     _clear();
@@ -68,6 +68,7 @@ class CloudDiaryStore extends DiaryStore {
       try {
         await NotificationBridge.account(user?.id);
         if (user == null) return;
+        await _syncNotificationSession();
         await _download(user.id, epoch);
         if (epoch != _epoch) return;
         signedIn = true;
@@ -92,6 +93,7 @@ class CloudDiaryStore extends DiaryStore {
   }
 
   void _clear() {
+    _notificationRevision = null;
     refreshing = false;
     signedIn = false;
     setupDone = false;
@@ -359,6 +361,21 @@ class CloudDiaryStore extends DiaryStore {
     await _activate(null);
   }
 
+  Future<void> _syncNotificationSession() async {
+    final session = client.auth.currentSession;
+    if (session == null || session.user.id != userId) return;
+    try {
+      await NotificationBridge.session(
+        session.user.id,
+        session.accessToken,
+        session.expiresAt ?? 0,
+      );
+    } catch (_) {
+      /* Foreground diary stays usable if the native module is unavailable. */
+    }
+  }
+
+  int? _notificationRevision;
   bool _importingNotifications = false;
   Future<void> importNotification(Map<String, dynamic> notification) async {
     final owner = userId;
@@ -424,6 +441,12 @@ class CloudDiaryStore extends DiaryStore {
     _importingNotifications = true;
     try {
       final status = await NotificationBridge.status(owner);
+      final revision = status['revision'] as int?;
+      if (revision != null && revision != _notificationRevision) {
+        await refreshCloud();
+        if (userId != owner) return;
+        if (connectionError == null) _notificationRevision = revision;
+      }
       if (status['permission'] != true ||
           status['enabled'] != true ||
           status['automatic'] != true) {
@@ -438,6 +461,7 @@ class CloudDiaryStore extends DiaryStore {
           return;
         }
         if (!(current['packages'] as List).contains(row['package'])) continue;
+        if (row['confirmed'] == true || row['editing'] == true) continue;
         if (parseBankNotification(row['text'] as String) != null) {
           await importNotification(row);
         }

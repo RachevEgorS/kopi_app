@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'diary.dart';
+import 'cloud_config.dart';
+import 'progress.dart' show dayKey;
 
 class NotificationOperation {
   final int amount;
@@ -81,6 +83,51 @@ abstract final class NotificationBridge {
       Map<String, dynamic>.from(
         await _channel.invokeMethod('status', {'owner': owner}) as Map,
       );
+  static Future<void> session(String owner, String token, int expires) async {
+    if (!supported) return;
+    try {
+      await _channel.invokeMethod('session', {
+        'owner': owner,
+        'token': token,
+        'expires': expires,
+        'url': CloudConfig.url,
+        'key': CloudConfig.publishableKey,
+      });
+    } on MissingPluginException {
+      /* Tests and older installed native engine. */
+    }
+  }
+
+  static Future<bool> requestPost() async =>
+      await _channel.invokeMethod<bool>('requestPost') ?? false;
+  static Future<void> postSettings() => _channel.invokeMethod('postSettings');
+  static Future<Map<String, dynamic>?> takeAction(String owner) async {
+    if (!supported) return null;
+    final row = await _channel.invokeMethod('takeAction', {'owner': owner});
+    return row == null ? null : Map<String, dynamic>.from(row as Map);
+  }
+
+  static Future<bool> edit(String owner, String id) async =>
+      await _channel.invokeMethod<bool>('edit', {'owner': owner, 'id': id}) ??
+      false;
+  static Future<bool> confirm(String owner, String id) async =>
+      await _channel.invokeMethod<bool>('confirm', {
+        'owner': owner,
+        'id': id,
+      }) ??
+      false;
+  static Future<void> confirmEdit(String owner, String id, Entry entry) =>
+      _channel.invokeMethod('confirmEdit', {
+        'owner': owner,
+        'id': id,
+        'entry': {
+          'amount': entry.amount,
+          'income': entry.isIncome,
+          'title': entry.title,
+          'category': entry.category,
+          'date': dayKey(entry.date),
+        },
+      });
   static Future<List<Map<String, dynamic>>> pending(String owner) async =>
       (await _channel.invokeListMethod<dynamic>('pending', {'owner': owner}) ??
               [])
@@ -95,12 +142,14 @@ abstract final class NotificationBridge {
     String owner,
     bool enabled,
     bool automatic,
-    Set<String> packages,
-  ) => _channel.invokeMethod('configure', {
+    Set<String> packages, {
+    bool prompts = true,
+  }) => _channel.invokeMethod('configure', {
     'owner': owner,
     'enabled': enabled,
     'automatic': automatic,
     'packages': packages.toList(),
+    'prompts': prompts,
   });
   static Future<void> ack(String owner, String id) =>
       _channel.invokeMethod('ack', {'owner': owner, 'id': id});

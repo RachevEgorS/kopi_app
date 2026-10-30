@@ -5,6 +5,7 @@ import '../data/cloud_errors.dart';
 import '../data/diary.dart';
 import '../data/notification_import.dart';
 import 'design.dart';
+import 'notification_editor.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   final CloudDiaryStore store;
@@ -17,6 +18,8 @@ class NotificationSettingsScreen extends StatefulWidget {
 class _NotificationSettingsState extends State<NotificationSettingsScreen>
     with WidgetsBindingObserver {
   bool enabled = false, automatic = false, permission = false, busy = true;
+  bool prompts = true, canPost = false;
+  Timer? refreshTimer;
   Set<String> packages = {};
   List<Map<String, dynamic>> apps = [], pending = [];
   String? error;
@@ -28,11 +31,19 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     load();
+    refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (current &&
+          !busy &&
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.paused) {
+        load();
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -55,6 +66,8 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
         enabled = status['enabled'] == true;
         automatic = status['automatic'] == true;
         permission = status['permission'] == true;
+        prompts = status['prompts'] != false;
+        canPost = status['canPost'] == true;
         packages = (status['packages'] as List).cast<String>().toSet();
         apps = installed;
         pending = rows;
@@ -76,6 +89,7 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
     bool? active,
     bool? auto,
     Set<String>? selected,
+    bool? ask,
   }) async {
     if (busy) return;
     setState(() => busy = true);
@@ -85,6 +99,7 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
         active ?? enabled,
         auto ?? automatic,
         selected ?? packages,
+        prompts: ask ?? prompts,
       );
       await load();
     } catch (_) {
@@ -105,7 +120,9 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
     });
     try {
       if (save) {
-        await widget.store.importNotification(row);
+        if (!await NotificationBridge.confirm(owner, row['id'] as String)) {
+          throw StateError('Открой запись через «Изменить».');
+        }
       } else {
         await NotificationBridge.ack(owner, row['id'] as String);
       }
@@ -115,6 +132,40 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
         setState(() {
           busy = false;
           error = cloudError(e);
+        });
+      }
+    }
+  }
+
+  Future<void> edit(Map<String, dynamic> row) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      final ok = await NotificationBridge.edit(owner, row['id'] as String);
+      if (ok && mounted && current) {
+        await openNotificationEditor(context, widget.store, row);
+      }
+      await load();
+    } catch (_) {
+      if (current) {
+        setState(() {
+          busy = false;
+          error = 'Не удалось открыть запись. Обнови список.';
+        });
+      }
+    }
+  }
+
+  Future<void> requestPost() async {
+    setState(() => busy = true);
+    try {
+      await NotificationBridge.requestPost();
+      await load();
+    } catch (_) {
+      if (current) {
+        setState(() {
+          busy = false;
+          error = 'Разреши уведомления Копи в настройках Android.';
         });
       }
     }
@@ -138,7 +189,7 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
                     const Heading('Записи из уведомлений'),
                     const SizedBox(height: 12),
                     const Text(
-                      'Копи читает новые уведомления только выбранных приложений. На устройстве хранится до 200 сообщений; при обработке удаляются сообщения старше 48 часов. В аккаунт сохраняется только операция. Коды подтверждения пропускаются.',
+                      'Копи предложит записать покупку или зачисление кнопкой в уведомлении. Подтверждённые записи ждут отправки даже без интернета. В аккаунт сохраняется только операция. Коды подтверждения пропускаются.',
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -166,9 +217,49 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
+                      title: const Text('Предлагать запись в уведомлении'),
+                      subtitle: const Text(
+                        'Добавить, изменить или пропустить. Смахивание ничего не записывает.',
+                      ),
+                      value: prompts,
+                      onChanged: busy || automatic
+                          ? null
+                          : (v) => configure(ask: v),
+                    ),
+                    if (prompts && !automatic) ...[
+                      Text(
+                        canPost
+                            ? 'Показ уведомлений разрешён'
+                            : 'Разреши Копи показывать предложения',
+                      ),
+                      if (!canPost)
+                        TextButton(
+                          onPressed: busy ? null : requestPost,
+                          child: const Text('Разрешить уведомления Копи'),
+                        ),
+                      TextButton(
+                        onPressed: busy
+                            ? null
+                            : () async {
+                                try {
+                                  await NotificationBridge.postSettings();
+                                } catch (_) {
+                                  if (current) {
+                                    setState(
+                                      () => error =
+                                          'Открой уведомления Копи в настройках Android.',
+                                    );
+                                  }
+                                }
+                              },
+                        child: const Text('Настройки показа уведомлений'),
+                      ),
+                    ],
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
                       title: const Text('Читать выбранные приложения'),
                       subtitle: const Text(
-                        'При выключении очередь сообщений очищается.',
+                        'При выключении удаляются и подтверждённые записи, которые ещё не отправлены.',
                       ),
                       value: enabled,
                       onChanged: busy ? null : (v) => configure(active: v),
@@ -266,6 +357,7 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
   );
   Widget _candidate(Map<String, dynamic> row) {
     final parsed = parseBankNotification(row['text'] as String);
+    final saved = row['payload'] as Map?;
     return Card(
       color: KopiColors.background,
       child: Padding(
@@ -274,7 +366,9 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              parsed == null
+              saved != null
+                  ? '${saved['kind'] == 'income' ? '+' : '−'}${money(saved['amount_kopecks'] as int)} · ${saved['title']}'
+                  : parsed == null
                   ? 'Нужна ручная запись'
                   : '${parsed.income ? '+' : '−'}${money(parsed.amount)} · ${parsed.title}',
             ),
@@ -284,20 +378,32 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
             ),
             const SizedBox(height: 8),
             Text(row['text'] as String, style: const TextStyle(fontSize: 12)),
-            Wrap(
-              spacing: 8,
-              children: [
-                if (parsed != null)
-                  TextButton(
-                    onPressed: busy ? null : () => act(row, true),
-                    child: const Text('Добавить в дневник'),
-                  ),
-                TextButton(
-                  onPressed: busy ? null : () => act(row, false),
-                  child: const Text('Пропустить'),
+            if (row['confirmed'] == true)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Подтверждено · ожидает отправки. Нужны интернет и действующий вход в аккаунт.',
                 ),
-              ],
-            ),
+              ),
+            if (row['confirmed'] != true)
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (parsed != null && row['editing'] != true)
+                    TextButton(
+                      onPressed: busy ? null : () => act(row, true),
+                      child: const Text('Добавить в дневник'),
+                    ),
+                  TextButton(
+                    onPressed: busy ? null : () => edit(row),
+                    child: const Text('Изменить'),
+                  ),
+                  TextButton(
+                    onPressed: busy ? null : () => act(row, false),
+                    child: const Text('Пропустить'),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
