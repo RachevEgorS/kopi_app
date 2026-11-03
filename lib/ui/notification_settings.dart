@@ -268,7 +268,7 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Добавлять автоматически'),
                       subtitle: const Text(
-                        'Только распознанные рублёвые покупки и зачисления. При открытии Копи и наличии интернета. Проверь записи: форматы банков могут различаться.',
+                        'Распознанные рублёвые покупки. Доходы и возможные оплаты подписок всегда проверяются вручную. При открытии Копи и наличии интернета. Проверь записи: форматы банков могут различаться.',
                       ),
                       value: automatic,
                       onChanged: busy || !enabled
@@ -389,7 +389,12 @@ class _NotificationSettingsState extends State<NotificationSettingsScreen>
               Wrap(
                 spacing: 8,
                 children: [
-                  if (parsed != null && row['editing'] != true)
+                  if (parsed != null &&
+                      !parsed.income &&
+                      row['editing'] != true &&
+                      !widget.store.payments.any(
+                        (p) => p.amount == parsed.amount,
+                      ))
                     TextButton(
                       onPressed: busy ? null : () => act(row, true),
                       child: const Text('Добавить в дневник'),

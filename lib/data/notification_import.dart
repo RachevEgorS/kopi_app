@@ -67,6 +67,14 @@ NotificationOperation? parseBankNotification(String text) {
 }
 
 abstract final class NotificationBridge {
+  static Future<void> openExactAlarms() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await const MethodChannel(
+        'kopi/notifications',
+      ).invokeMethod<void>('exactAlarms');
+    }
+  }
+
   static const _channel = MethodChannel('kopi/notifications');
   static bool get supported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -126,8 +134,41 @@ abstract final class NotificationBridge {
           'title': entry.title,
           'category': entry.category,
           'date': dayKey(entry.date),
+          'incomeInOpening': entry.incomeInOpening,
+          'paymentOccurrence': entry.paymentOccurrence,
         },
       });
+  static Future<void> reminders(
+    String owner,
+    bool enabled,
+    List<PlannedPayment> payments,
+    List<Entry> entries,
+  ) async {
+    if (!supported) return;
+    await _channel.invokeMethod('reminders', {
+      'owner': owner,
+      'enabled': enabled,
+      'payments': payments
+          .map(
+            (p) => {
+              'id': p.id,
+              'title': p.title,
+              'amount': p.amount,
+              'start': dayKey(p.start),
+              'monthly': p.monthly,
+              'reminderDays': p.reminderDays,
+              'reminderMinute': p.reminderMinute,
+              'repeatMinutes': p.repeatMinutes,
+            },
+          )
+          .toList(),
+      'paid': entries
+          .map((e) => e.paymentOccurrence)
+          .whereType<String>()
+          .toList(),
+    });
+  }
+
   static Future<List<Map<String, dynamic>>> pending(String owner) async =>
       (await _channel.invokeListMethod<dynamic>('pending', {'owner': owner}) ??
               [])

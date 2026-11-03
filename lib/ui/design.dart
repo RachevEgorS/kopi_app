@@ -410,7 +410,7 @@ class KopiField extends StatelessWidget {
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextInputAction action;
-  final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onSubmitted, onChanged;
   final Iterable<String>? autofillHints;
   const KopiField({
     super.key,
@@ -423,6 +423,7 @@ class KopiField extends StatelessWidget {
     this.keyboardType,
     this.action = TextInputAction.next,
     this.onSubmitted,
+    this.onChanged,
     this.autofillHints,
   });
   @override
@@ -446,6 +447,7 @@ class KopiField extends StatelessWidget {
               : keyboardType,
           textInputAction: action,
           onFieldSubmitted: onSubmitted,
+          onChanged: onChanged,
           validator: validator,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           style: const TextStyle(fontSize: 15, color: KopiColors.ink),

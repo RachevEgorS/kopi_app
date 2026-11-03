@@ -102,6 +102,114 @@ const goalIcons = [
     Icons.star_border,
     Glyph.star,
   ),
+  GoalIconSpec(
+    'desktop',
+    'Компьютер',
+    'Техника',
+    Icons.desktop_windows_outlined,
+  ),
+  GoalIconSpec('keyboard', 'Клавиатура', 'Техника', Icons.keyboard_outlined),
+  GoalIconSpec('mouse', 'Мышь', 'Техника', Icons.mouse_outlined),
+  GoalIconSpec('printer', 'Принтер', 'Техника', Icons.print_outlined),
+  GoalIconSpec('speaker', 'Колонка', 'Техника', Icons.speaker_outlined),
+  GoalIconSpec('microphone', 'Микрофон', 'Техника', Icons.mic_none_outlined),
+  GoalIconSpec('router', 'Роутер', 'Техника', Icons.router_outlined),
+  GoalIconSpec('videocam', 'Видеокамера', 'Техника', Icons.videocam_outlined),
+  GoalIconSpec('boat', 'Круиз', 'Путешествия', Icons.sailing_outlined),
+  GoalIconSpec('hotel', 'Отель', 'Путешествия', Icons.hotel_outlined),
+  GoalIconSpec('forest', 'Лес', 'Путешествия', Icons.forest_outlined),
+  GoalIconSpec(
+    'tent',
+    'Палатка',
+    'Путешествия',
+    Icons.holiday_village_outlined,
+  ),
+  GoalIconSpec('passport', 'Документы', 'Путешествия', Icons.badge_outlined),
+  GoalIconSpec('museum', 'Музей', 'Путешествия', Icons.museum_outlined),
+  GoalIconSpec('explore', 'Открытия', 'Путешествия', Icons.explore_outlined),
+  GoalIconSpec('snow', 'Зимний отдых', 'Путешествия', Icons.ac_unit_outlined),
+  GoalIconSpec('lamp', 'Светильник', 'Дом', Icons.light_outlined),
+  GoalIconSpec('desk', 'Рабочий стол', 'Дом', Icons.desk_outlined),
+  GoalIconSpec('chair', 'Кресло', 'Дом', Icons.chair_outlined),
+  GoalIconSpec('bath', 'Ванная', 'Дом', Icons.bathtub_outlined),
+  GoalIconSpec(
+    'washer',
+    'Стиральная машина',
+    'Дом',
+    Icons.local_laundry_service_outlined,
+  ),
+  GoalIconSpec(
+    'dining',
+    'Обеденный стол',
+    'Дом',
+    Icons.table_restaurant_outlined,
+  ),
+  GoalIconSpec('plants', 'Растения', 'Дом', Icons.local_florist_outlined),
+  GoalIconSpec('cleaning', 'Уборка', 'Дом', Icons.cleaning_services_outlined),
+  GoalIconSpec(
+    'dentist',
+    'Стоматолог',
+    'Для себя',
+    Icons.medical_services_outlined,
+  ),
+  GoalIconSpec('glasses', 'Очки', 'Для себя', Icons.visibility_outlined),
+  GoalIconSpec('haircut', 'Стрижка', 'Для себя', Icons.content_cut_outlined),
+  GoalIconSpec('restaurant', 'Ресторан', 'Для себя', Icons.restaurant_outlined),
+  GoalIconSpec('cake', 'День рождения', 'Для себя', Icons.cake_outlined),
+  GoalIconSpec(
+    'meditation',
+    'Медитация',
+    'Для себя',
+    Icons.self_improvement_outlined,
+  ),
+  GoalIconSpec('run', 'Бег', 'Для себя', Icons.directions_run_outlined),
+  GoalIconSpec('swim', 'Плавание', 'Для себя', Icons.pool_outlined),
+  GoalIconSpec('guitar', 'Гитара', 'Увлечения', Icons.music_video_outlined),
+  GoalIconSpec('piano', 'Пианино', 'Увлечения', Icons.piano_outlined),
+  GoalIconSpec(
+    'photo',
+    'Фотография',
+    'Увлечения',
+    Icons.photo_library_outlined,
+  ),
+  GoalIconSpec('craft', 'Рукоделие', 'Увлечения', Icons.brush_outlined),
+  GoalIconSpec(
+    'chess',
+    'Настольные игры',
+    'Увлечения',
+    Icons.extension_outlined,
+  ),
+  GoalIconSpec('skate', 'Скейтборд', 'Увлечения', Icons.skateboarding_outlined),
+  GoalIconSpec('ski', 'Лыжи', 'Увлечения', Icons.downhill_skiing_outlined),
+  GoalIconSpec(
+    'basketball',
+    'Баскетбол',
+    'Увлечения',
+    Icons.sports_basketball_outlined,
+  ),
+  GoalIconSpec('motorbike', 'Мотоцикл', 'Важное', Icons.two_wheeler_outlined),
+  GoalIconSpec('license', 'Автошкола', 'Важное', Icons.drive_eta_outlined),
+  GoalIconSpec('relocation', 'Переезд', 'Важное', Icons.moving_outlined),
+  GoalIconSpec(
+    'emergency',
+    'Запас денег',
+    'Важное',
+    Icons.account_balance_wallet_outlined,
+  ),
+  GoalIconSpec(
+    'graduation',
+    'Диплом',
+    'Важное',
+    Icons.workspace_premium_outlined,
+  ),
+  GoalIconSpec(
+    'charity',
+    'Помощь',
+    'Важное',
+    Icons.volunteer_activism_outlined,
+  ),
+  GoalIconSpec('business', 'Магазин', 'Важное', Icons.storefront_outlined),
+  GoalIconSpec('future', 'Будущее', 'Важное', Icons.wb_sunny_outlined),
 ];
 GoalIconSpec goalIconById(String id) =>
     goalIcons.where((item) => item.id == id).firstOrNull ?? goalIcons.first;
@@ -109,8 +217,14 @@ GoalIconSpec goalIconById(String id) =>
 class GoalSymbol extends StatelessWidget {
   final String id;
   final double size;
-  final bool tile;
-  const GoalSymbol(this.id, {super.key, this.size = 22, this.tile = true});
+  final bool tile, selected;
+  const GoalSymbol(
+    this.id, {
+    super.key,
+    this.size = 22,
+    this.tile = true,
+    this.selected = false,
+  });
   @override
   Widget build(BuildContext context) {
     final spec = goalIconById(id);
@@ -125,6 +239,10 @@ class GoalSymbol extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: spec.color,
+                border: Border.all(
+                  color: selected ? KopiColors.berry : Colors.transparent,
+                  width: 1.5,
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: symbol,
@@ -164,153 +282,173 @@ class _GoalIconPickerState extends State<GoalIconPicker> {
         )
         .toList();
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * .78,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 12, 10),
-                child: Row(
-                  children: [
-                    const Expanded(child: Heading('Значок мечты', size: 25)),
-                    IconButton(
-                      tooltip: 'Закрыть выбор значка',
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, size: 20),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: TextField(
-                  onChanged: (value) => setState(() => query = value),
-                  decoration: const InputDecoration(
-                    hintText: 'Найти: море, машина, книги…',
-                    prefixIcon: Icon(Icons.search),
-                    contentPadding: EdgeInsets.all(12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 62,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
-                  children: [
-                    for (final category in [
-                      'Все',
-                      ...goalIcons.map((i) => i.group).toSet(),
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(
-                            category,
-                            style: const TextStyle(fontSize: 12),
+      child: LayoutBuilder(
+        builder: (context, bounds) {
+          final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+          final height = (MediaQuery.sizeOf(context).height * .78).clamp(
+            0.0,
+            (bounds.maxHeight - keyboard).clamp(0.0, double.infinity),
+          );
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboard),
+            child: SizedBox(
+              height: height,
+              child: CustomScrollView(
+                key: const ValueKey('goal-icon-scroll'),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 12, 8),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Heading('Значок мечты', size: 24),
                           ),
-                          selected: category == group,
-                          onSelected: (_) => setState(() => group = category),
-                          selectedColor: KopiColors.soft,
-                          showCheckmark: false,
+                          IconButton(
+                            tooltip: 'Закрыть выбор значка',
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close, size: 20),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: TextField(
+                        onChanged: (v) => setState(() => query = v),
+                        decoration: const InputDecoration(
+                          hintText: 'Поиск значка',
+                          prefixIcon: Icon(Icons.search),
+                          isDense: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
                         ),
                       ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text(
-                            'Такого значка пока нет. Попробуй другое слово.',
-                            textAlign: TextAlign.center,
-                          ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 60,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
                         ),
-                      )
-                    : LayoutBuilder(
-                        builder: (context, bounds) => GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: ((bounds.maxWidth - 40) / 80)
-                                    .floor()
-                                    .clamp(2, 6),
-                                mainAxisExtent:
-                                    72 +
-                                    MediaQuery.textScalerOf(context).scale(11) *
-                                        2.8,
-                                crossAxisSpacing: 6,
-                                mainAxisSpacing: 6,
+                        children: [
+                          for (final category in [
+                            'Все',
+                            ...goalIcons.map((i) => i.group).toSet(),
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(
+                                  category,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                selected: category == group,
+                                onSelected: (_) =>
+                                    setState(() => group = category),
+                                selectedColor: KopiColors.soft,
+                                showCheckmark: false,
                               ),
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final item = filtered[index];
-                            final selected = item.id == widget.selected;
-                            return Semantics(
-                              label: item.label,
-                              selected: selected,
-                              button: true,
-                              child: InkWell(
-                                key: ValueKey('choose-icon-${item.id}'),
-                                onTap: () => Navigator.pop(context, item.id),
-                                borderRadius: BorderRadius.circular(14),
-                                child: ExcludeSemantics(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 3,
-                                      vertical: 7,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: selected
-                                            ? KopiColors.berry
-                                            : Colors.transparent,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (filtered.isEmpty)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Такого значка пока нет. Попробуй другое слово.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      sliver: SliverLayoutBuilder(
+                        builder: (context, constraints) {
+                          final textHeight =
+                              MediaQuery.textScalerOf(context).scale(11) * 1.25;
+                          final columns =
+                              (constraints.crossAxisExtent /
+                                      (textHeight > 17 ? 104 : 80))
+                                  .floor()
+                                  .clamp(2, 6);
+                          return SliverGrid(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: columns,
+                                  mainAxisExtent: 52 + textHeight * 2,
+                                  crossAxisSpacing: 4,
+                                  mainAxisSpacing: 4,
+                                ),
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final item = filtered[index];
+                              final selected = item.id == widget.selected;
+                              return Semantics(
+                                label: item.label,
+                                selected: selected,
+                                button: true,
+                                child: InkWell(
+                                  key: ValueKey('choose-icon-${item.id}'),
+                                  onTap: () => Navigator.pop(context, item.id),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: ExcludeSemantics(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 2,
+                                        vertical: 3,
                                       ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      color: selected
-                                          ? KopiColors.soft.withValues(
-                                              alpha: .35,
-                                            )
-                                          : null,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        GoalSymbol(item.id),
-                                        const SizedBox(height: 7),
-                                        Text(
-                                          item.label,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 2,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            height: 1.25,
+                                      child: Column(
+                                        children: [
+                                          GoalSymbol(
+                                            item.id,
+                                            selected: selected,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            item.label,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              height: 1.25,
+                                              fontWeight: selected
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w400,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                              );
+                            }, childCount: filtered.length),
+                          );
+                        },
                       ),
+                    ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

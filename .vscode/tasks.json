@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Копи: тесты Flutter",
+      "type": "shell",
+      "command": "${env:USERPROFILE}/develop/flutter/bin/flutter.bat",
+      "args": ["test", "--reporter", "expanded"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": {"kind": "test", "isDefault": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Копи: проверка кода",
+      "type": "shell",
+      "command": "${env:USERPROFILE}/develop/flutter/bin/flutter.bat",
+      "args": ["analyze"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Копи: тесты Android",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tool/test-android.ps1"],
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

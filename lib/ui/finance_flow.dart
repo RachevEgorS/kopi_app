@@ -155,7 +155,7 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
       ),
       FinancePage.payment => (
         'Важное под рукой',
-        'Платёж появится в календаре. Ежемесячный — ещё и в регулярных платежах. Настройка напоминания сохраняется, но уведомления пока не отправляются. Приложение не выполняет оплату и не отменяет подписку. Отметка оплаты создаёт расход и освобождает резерв.',
+        'Платёж появится в календаре. Ежемесячный — ещё и в регулярных платежах. Напоминание приходит после 09:00 выбранного дня, если разрешены уведомления. Android может задержать доставку. Приложение не выполняет оплату и не отменяет подписку. Отметка оплаты создаёт расход и освобождает резерв.',
       ),
       FinancePage.subscriptions => (
         'Что повторяется каждый месяц',
@@ -212,6 +212,7 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
                 store: widget.store,
                 topic: 'budget',
                 child: BudgetScreen(
+                  store: widget.store,
                   month: selected,
                   initial: widget.store.budgets[monthKey(selected)],
                   onBack: () => Navigator.pop(ctx),
@@ -359,29 +360,30 @@ class _FinanceFlowState extends State<FinanceFlow> with WidgetsBindingObserver {
                       onProfile: profile,
                     ),
                     Expanded(child: content),
-                    KopiNavigation(
-                      selected:
-                          [
-                            FinancePage.calendar,
-                            FinancePage.payment,
-                            FinancePage.subscriptions,
-                          ].contains(current.page)
-                          ? 'calendar'
-                          : current.page == FinancePage.analytics
-                          ? 'overview'
-                          : [
-                              FinancePage.goals,
-                              FinancePage.forecast,
-                              FinancePage.achievements,
+                    if (MediaQuery.viewInsetsOf(context).bottom == 0)
+                      KopiNavigation(
+                        selected:
+                            [
+                              FinancePage.calendar,
+                              FinancePage.payment,
+                              FinancePage.subscriptions,
                             ].contains(current.page)
-                          ? 'dreams'
-                          : 'diary',
-                      onDiary: () => Navigator.pop(context),
-                      onCalendar: calendar,
-                      onAdd: add,
-                      onDreams: () => tab(FinancePage.goals),
-                      onOverview: () => tab(FinancePage.analytics),
-                    ),
+                            ? 'calendar'
+                            : current.page == FinancePage.analytics
+                            ? 'overview'
+                            : [
+                                FinancePage.goals,
+                                FinancePage.forecast,
+                                FinancePage.achievements,
+                              ].contains(current.page)
+                            ? 'dreams'
+                            : 'diary',
+                        onDiary: () => Navigator.pop(context),
+                        onCalendar: calendar,
+                        onAdd: add,
+                        onDreams: () => tab(FinancePage.goals),
+                        onOverview: () => tab(FinancePage.analytics),
+                      ),
                   ],
                 ),
               ),

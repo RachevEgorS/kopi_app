@@ -46,12 +46,12 @@ void main() {
     await tapText(tester, 'Создать дневник');
     await tapText(tester, 'Продолжить в деморежиме');
     expect(find.text('План на октябрь'), findsOneWidget);
-    for (final (i, value) in ['60000', '50000', '11000', '5000'].indexed) {
+    for (final (i, value) in ['60000', '5000'].indexed) {
       await tester.enterText(find.byType(TextFormField).at(i), value);
     }
     await tapText(tester, 'Сохранить мой план');
     expect(find.text('Можно потратить сегодня'), findsOneWidget);
-    expect(find.text('5 666,66 ₽'), findsOneWidget);
+    expect(find.text('9 166,66 ₽'), findsOneWidget);
     await tester.tap(find.byTooltip('Следующий месяц'));
     await tester.pumpAndSettle();
     expect(find.text('Ноябрь 2026'), findsOneWidget);

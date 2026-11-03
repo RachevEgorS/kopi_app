@@ -29,9 +29,9 @@ void phone(WidgetTester tester, {double width = 390}) {
 }
 
 void main() {
-  test('48 unique icon ids and backward-compatible existing goal symbols', () {
-    expect(goalIcons.length, 48);
-    expect(goalIcons.map((item) => item.id).toSet().length, 48);
+  test('96 unique icon ids and backward-compatible existing goal symbols', () {
+    expect(goalIcons.length, 96);
+    expect(goalIcons.map((item) => item.id).toSet().length, 96);
     expect(goalIconById('laptop').line, Glyph.laptop);
     expect(goalIconById('leaf').line, Glyph.leaf);
     expect(goalIconById('flag').line, Glyph.flag);

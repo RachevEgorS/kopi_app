@@ -47,23 +47,34 @@ String money(int kopecks, {bool currency = true}) {
 
 class Budget {
   final int income, limit, reserve, dreams;
+  final int plannedIncome;
+  final bool carryForward, simplePlan;
   const Budget({
     required this.income,
     required this.limit,
     required this.reserve,
     required this.dreams,
+    this.plannedIncome = 0,
+    this.carryForward = false,
+    this.simplePlan = false,
   });
   Map<String, dynamic> toJson() => {
     'income': income,
     'limit': limit,
     'reserve': reserve,
     'dreams': dreams,
+    'plannedIncome': plannedIncome,
+    'carryForward': carryForward,
+    'simplePlan': simplePlan,
   };
   factory Budget.fromJson(Map<String, dynamic> json) => Budget(
     income: json['income'] as int,
     limit: json['limit'] as int,
     reserve: json['reserve'] as int,
     dreams: json['dreams'] as int,
+    plannedIncome: json['plannedIncome'] as int? ?? 0,
+    carryForward: json['carryForward'] == true,
+    simplePlan: json['simplePlan'] == true,
   );
 }
 
@@ -72,6 +83,7 @@ class Entry {
   final int amount;
   final DateTime date;
   final bool isIncome;
+  final bool incomeInOpening;
   final String? paymentOccurrence;
   const Entry({
     required this.id,
@@ -80,6 +92,7 @@ class Entry {
     required this.amount,
     required this.date,
     this.isIncome = false,
+    this.incomeInOpening = false,
     this.paymentOccurrence,
   });
   Map<String, dynamic> toJson() => {
@@ -89,6 +102,7 @@ class Entry {
     'amount': amount,
     'date': date.toIso8601String(),
     'isIncome': isIncome,
+    'incomeInOpening': incomeInOpening,
     'paymentOccurrence': paymentOccurrence,
   };
   factory Entry.fromJson(Map<String, dynamic> json) => Entry(
@@ -98,6 +112,7 @@ class Entry {
     amount: json['amount'] as int,
     date: DateTime.parse(json['date'] as String),
     isIncome: json['isIncome'] as bool? ?? false,
+    incomeInOpening: json['incomeInOpening'] == true,
     paymentOccurrence: json['paymentOccurrence'] as String?,
   );
 }
@@ -130,7 +145,7 @@ String reminderLabel(int days) => switch (days) {
 
 class PlannedPayment {
   final String id, title;
-  final int amount, reminderDays;
+  final int amount, reminderDays, reminderMinute, repeatMinutes;
   final DateTime start;
   final bool monthly;
   const PlannedPayment({
@@ -140,6 +155,8 @@ class PlannedPayment {
     required this.start,
     this.monthly = false,
     this.reminderDays = 1,
+    this.reminderMinute = 540,
+    this.repeatMinutes = 0,
   });
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -148,6 +165,8 @@ class PlannedPayment {
     'start': start.toIso8601String(),
     'monthly': monthly,
     'reminderDays': reminderDays,
+    'reminderMinute': reminderMinute,
+    'repeatMinutes': repeatMinutes,
   };
   factory PlannedPayment.fromJson(Map<String, dynamic> json) => PlannedPayment(
     id: json['id'] as String,
@@ -156,6 +175,8 @@ class PlannedPayment {
     start: DateTime.parse(json['start'] as String),
     monthly: json['monthly'] as bool,
     reminderDays: json['reminderDays'] as int,
+    reminderMinute: json['reminderMinute'] as int? ?? 540,
+    repeatMinutes: json['repeatMinutes'] as int? ?? 0,
   );
   PaymentOccurrence? inMonth(DateTime month) {
     if (!monthly) {
@@ -200,9 +221,9 @@ class PaymentOccurrence {
 }
 
 class DailyAllowance {
-  final int free, days;
-  const DailyAllowance(this.free, this.days);
-  int get amount => max(0, free ~/ days);
+  final int free, days, spentToday;
+  const DailyAllowance(this.free, this.days, [this.spentToday = 0]);
+  int get amount => max(0, (free + spentToday) ~/ days - spentToday);
   static DailyAllowance calculate({
     required int limit,
     required int spent,
@@ -210,9 +231,11 @@ class DailyAllowance {
     required int reserve,
     required int dreams,
     required int days,
+    int spentToday = 0,
   }) => DailyAllowance(
     min(limit - spent, available) - reserve - dreams,
     max(1, days),
+    spentToday,
   );
 }
 
@@ -235,6 +258,7 @@ class DiaryStore extends ChangeNotifier {
   List<Entry> entries = [];
   List<PlannedPayment> payments = [];
   List<SavingGoal> goals = [];
+  List<GoalContribution> contributions = [];
   Set<String> checkedDays = {}, badges = {};
   bool remindersEnabled = true, supportEnabled = true;
   Set<String> seenEducation = {};
@@ -262,6 +286,12 @@ class DiaryStore extends ChangeNotifier {
           .toList();
       goals = (json['goals'] as List? ?? [])
           .map((v) => SavingGoal.fromJson(v as Map<String, dynamic>))
+          .toList();
+      contributions = (json['contributions'] as List? ?? [])
+          .map(
+            (v) =>
+                GoalContribution.fromJson(Map<String, dynamic>.from(v as Map)),
+          )
           .toList();
       checkedDays = (json['checkedDays'] as List? ?? []).cast<String>().toSet();
       badges = (json['badges'] as List? ?? []).cast<String>().toSet();
@@ -300,6 +330,7 @@ class DiaryStore extends ChangeNotifier {
         'entries': entries.map((e) => e.toJson()).toList(),
         'payments': payments.map((p) => p.toJson()).toList(),
         'goals': goals.map((g) => g.toJson()).toList(),
+        'contributions': contributions.map((g) => g.toJson()).toList(),
         'checkedDays': checkedDays.toList(),
         'badges': badges.toList(),
         'seenEducation': seenEducation.toList(),
@@ -449,11 +480,92 @@ class DiaryStore extends ChangeNotifier {
   int spentFor(DateTime month) => entriesFor(
     month,
   ).where((e) => !e.isIncome).fold(0, (sum, e) => sum + e.amount);
-  int addedIncomeFor(DateTime month) => entriesFor(
-    month,
-  ).where((e) => e.isIncome).fold(0, (sum, e) => sum + e.amount);
-  int incomeFor(DateTime month) =>
-      (budgets[monthKey(month)]?.income ?? 0) + addedIncomeFor(month);
+  int addedIncomeFor(DateTime month) => entriesFor(month)
+      .where((e) => e.isIncome && !e.incomeInOpening)
+      .fold(0, (sum, e) => sum + e.amount);
+  int incomeFor(DateTime month) {
+    final budget = budgets[monthKey(month)];
+    if (budget?.simplePlan == true) {
+      final received = entriesFor(
+        month,
+      ).where((e) => e.isIncome).fold(0, (int sum, e) => sum + e.amount);
+      return max(budget!.income, received);
+    }
+    return (budget?.income ?? 0) + addedIncomeFor(month);
+  }
+
+  int everydaySpentOn(DateTime day) => entriesFor(day)
+      .where(
+        (e) =>
+            !e.isIncome &&
+            e.paymentOccurrence == null &&
+            dateOnly(e.date) == dateOnly(day),
+      )
+      .fold(0, (sum, e) => sum + e.amount);
+
+  int contributionsFor(DateTime month) => contributions
+      .where((c) => monthKey(c.date) == monthKey(month))
+      .fold(0, (sum, c) => sum + c.amount);
+  int carriedFor(DateTime month) {
+    if (budgets[monthKey(month)]?.carryForward != true) return 0;
+    final months = {
+      ...budgets.keys,
+      ...entries.map((e) => monthKey(e.date)),
+      ...contributions.map((c) => monthKey(c.date)),
+    }.where((key) => key.compareTo(monthKey(month)) < 0).toList()..sort();
+    var balance = 0;
+    for (final key in months) {
+      final date = DateTime.parse('$key-01');
+      final budget = budgets[key];
+      if (budget != null && !budget.carryForward) balance = 0;
+      balance += incomeFor(date) - spentFor(date) - contributionsFor(date);
+    }
+    return balance;
+  }
+
+  int availableFor(DateTime month) =>
+      carriedFor(month) +
+      incomeFor(month) -
+      spentFor(month) -
+      contributionsFor(month);
+
+  Future<void> addContribution(GoalContribution contribution) async {
+    if (contributions.any((c) => c.id == contribution.id)) return;
+    final index = goals.indexWhere((g) => g.id == contribution.goalId);
+    if (index < 0 || contribution.amount <= 0) {
+      throw ArgumentError('Укажи цель и сумму');
+    }
+    final previous = goals[index];
+    contributions.add(contribution);
+    goals[index] = previous.withSaved(previous.saved + contribution.amount);
+    try {
+      await _save();
+    } catch (_) {
+      contributions.remove(contribution);
+      goals[index] = previous;
+      rethrow;
+    }
+  }
+
+  Future<void> deleteContribution(String id) async {
+    final item = contributions.firstWhere((c) => c.id == id);
+    final previous = List<SavingGoal>.of(goals);
+    contributions.remove(item);
+    goals = goals
+        .map(
+          (g) => g.id == item.goalId
+              ? g.withSaved(max(0, g.saved - item.amount))
+              : g,
+        )
+        .toList();
+    try {
+      await _save();
+    } catch (_) {
+      contributions.add(item);
+      goals = previous;
+      rethrow;
+    }
+  }
 
   /// Scheduled payments are covered by the manual reserve, not added twice.
   /// Paying creates an expense and releases the same part of the manual reserve.
@@ -586,11 +698,23 @@ class DiaryStore extends ChangeNotifier {
   }
 
   int dreamsReserveFor(DateTime month, DateTime today) {
-    final planned = goals.fold<int>(
-      0,
-      (sum, goal) => sum + goal.reserveIn(month, today),
-    );
-    return max(budgets[monthKey(month)]?.dreams ?? 0, planned);
+    final paid = contributionsFor(month);
+    final planned = goals.fold<int>(0, (sum, goal) {
+      final goalPaid = contributions
+          .where(
+            (c) => c.goalId == goal.id && monthKey(c.date) == monthKey(month),
+          )
+          .fold<int>(0, (s, c) => s + c.amount);
+      return sum +
+          max(
+            0,
+            goal
+                    .withSaved(max(0, goal.saved - goalPaid))
+                    .reserveIn(month, DateTime(month.year, month.month)) -
+                goalPaid,
+          );
+    });
+    return max(max(0, (budgets[monthKey(month)]?.dreams ?? 0) - paid), planned);
   }
 
   List<Entry> entriesFor(DateTime date) =>

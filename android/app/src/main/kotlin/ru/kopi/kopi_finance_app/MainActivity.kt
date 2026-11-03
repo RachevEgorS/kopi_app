@@ -27,7 +27,18 @@ class MainActivity : FlutterActivity() {
             try {
                 val repo = NotificationInbox(this)
                 when (call.method) {
+                    "exactAlarms" -> {
+                        if(Build.VERSION.SDK_INT>=31) startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:$packageName")))
+                        result.success(null)
+                    }
+
                     "account" -> { repo.account(call.argument<String>("owner")); result.success(null) }
+                    "reminders" -> {
+                        val owner=call.argument<String>("owner")!!
+                        repo.status(owner)
+                        PaymentReminders(this).configure(owner,call.argument<Boolean>("enabled")==true,call.argument<List<Map<String,Any?>>>("payments") ?: emptyList(),call.argument<List<String>>("paid") ?: emptyList())
+                        result.success(null)
+                    }
                     "session" -> {
                         repo.session(call.argument<String>("owner"), call.argument<String>("url")!!,
                             call.argument<String>("key")!!, call.argument<String>("token")!!, (call.argument<Number>("expires")!!).toLong())

@@ -30,8 +30,12 @@ class FakeCloud {
     'transactions': [],
     'planned_payments': [],
     'savings_goals': [],
+    'goal_contributions': [],
+    'user_progress': [],
   };
   bool failWrite = false, failRead = false, rejectLogin = false;
+  String? rejectNextWriteTable;
+  bool offline = false;
   bool requireConfirmation = false;
   Completer<void>? holdRead, holdWrite;
   final requests = <http.Request>[];
@@ -76,6 +80,7 @@ class FakeCloud {
 
   Future<http.Response> handle(http.Request request) async {
     requests.add(request);
+    if (offline) throw http.ClientException('No network');
     final path = request.url.path;
     if (path.endsWith('/logout')) return http.Response('', 204);
     if (path.endsWith('/recover')) return response({});
@@ -130,30 +135,43 @@ class FakeCloud {
     final gate = holdWrite;
     holdWrite = null;
     if (gate != null) await gate.future;
+    if (rejectNextWriteTable == table) {
+      rejectNextWriteTable = null;
+      return response({
+        'code': '23514',
+        'message': 'Constraint violation',
+      }, 400);
+    }
     if (failWrite) return response({'code': '42501', 'message': 'Denied'}, 403);
     if (request.method == 'DELETE') {
       rows.removeWhere(matches);
       return http.Response('', 204);
     }
-    final values = jsonDecode(request.body) as Map<String, dynamic>;
+    final decoded = jsonDecode(request.body);
     if (request.method == 'POST') {
-      final conflict = (query['on_conflict'] ?? 'id').split(',');
-      final existing = rows
-          .where(
-            (row) => conflict.every(
-              (key) => values[key] != null && row[key] == values[key],
-            ),
-          )
-          .firstOrNull;
-      if (existing == null) {
-        rows.add({...values});
-      } else if (!(request.headers['prefer'] ?? '').contains(
-        'ignore-duplicates',
-      )) {
-        existing.addAll(values);
+      final values = decoded is List
+          ? decoded.cast<Map<String, dynamic>>()
+          : [decoded as Map<String, dynamic>];
+      for (final value in values) {
+        final conflict = (query['on_conflict'] ?? 'id').split(',');
+        final existing = rows
+            .where(
+              (r) => conflict.every(
+                (key) => value[key] != null && r[key] == value[key],
+              ),
+            )
+            .firstOrNull;
+        if (existing == null) {
+          rows.add({...value});
+        } else if (!(request.headers['prefer'] ?? '').contains(
+          'ignore-duplicates',
+        )) {
+          existing.addAll(value);
+        }
       }
       return http.Response('', 201);
     }
+    final values = decoded as Map<String, dynamic>;
     final changed = rows.where(matches).toList();
     for (final row in changed) {
       row.addAll(values);
@@ -199,6 +217,113 @@ void main() {
     category: 'Кафе',
     amount: 45000,
     date: DateTime(2026, 10, 29),
+  );
+
+  test(
+    'offline operations and contributions survive restart and synchronize once',
+    () async {
+      await login();
+      final month = DateTime(2026, 10);
+      await store.saveBudget(
+        month,
+        const Budget(
+          income: 3000000,
+          plannedIncome: 1000000,
+          carryForward: true,
+          limit: 3000000,
+          reserve: 0,
+          dreams: 0,
+        ),
+      );
+      cloud.offline = true;
+      final entry = expense(store.newId());
+      await store.addEntry(entry);
+      final goal = SavingGoal(
+        id: store.newId(),
+        title: 'Мечта',
+        target: 1000000,
+        saved: 0,
+        weekly: 0,
+        nextContribution: month,
+      );
+      await store.saveGoal(goal);
+      await store.addContribution(
+        GoalContribution(
+          id: store.newId(),
+          goalId: goal.id,
+          amount: 50000,
+          date: month,
+        ),
+      );
+      await store.checkToday(month);
+      expect(store.pendingCount, greaterThan(0));
+      expect(store.availableFor(month), 2905000);
+      store.dispose();
+      store = CloudDiaryStore(
+        await SharedPreferences.getInstance(),
+        cloud.client,
+      );
+      await store.start();
+      expect(store.signedIn, true);
+      expect(store.entries.single.id, entry.id);
+      expect(store.goals.single.saved, 50000);
+      expect(store.budgets['2026-10']!.plannedIncome, 1000000);
+      cloud.offline = false;
+      await store.refreshCloud();
+      await store.refreshCloud();
+      expect(store.pendingCount, 0);
+      expect(cloud.tables['transactions'], hasLength(1));
+      expect(cloud.tables['goal_contributions'], hasLength(1));
+      expect(store.goals.single.saved, 50000);
+      expect(store.availableFor(month), 2905000);
+    },
+  );
+
+  test(
+    'queued changes stay scoped to the owner through logout and another login',
+    () async {
+      await login();
+      cloud.offline = true;
+      final entry = expense(store.newId());
+      await store.addEntry(entry);
+      cloud.offline = false;
+      await store.logout();
+      await login('bob@example.com');
+      expect(store.entries, isEmpty);
+      expect(store.pendingCount, 0);
+      expect(cloud.tables['transactions'], isEmpty);
+      await store.logout();
+      await login();
+      expect(store.entries.single.id, entry.id);
+      expect(store.pendingCount, 0);
+      expect(cloud.tables['transactions']!.single['user_id'], alice);
+    },
+  );
+
+  test(
+    'days badges and education synchronize to a device with empty local storage',
+    () async {
+      await login();
+      final entry = expense(store.newId());
+      await store.addEntry(entry);
+      await store.deleteEntry(entry.id);
+      await store.checkToday(DateTime(2026, 10, 30));
+      await store.checkToday(DateTime(2026, 10, 30));
+      await store.finishEducation('calendar');
+      store.dispose();
+      SharedPreferences.setMockInitialValues({});
+      store = CloudDiaryStore(
+        await SharedPreferences.getInstance(),
+        cloud.client,
+      );
+      await store.start();
+      expect(store.checkedDays, {'2026-10-30'});
+      expect(store.badges, contains('first'));
+      expect(store.seenEducation, contains('calendar'));
+      await store.resetEducation();
+      await store.refreshCloud();
+      expect(store.seenEducation, isEmpty);
+    },
   );
 
   test(
@@ -294,24 +419,25 @@ void main() {
   );
 
   test(
-    'failed writes keep saved state and a retry uses the same operation ID',
+    'failed writes stay local, can retry, and keep the operation ID',
     () async {
       await login();
       final e = expense(store.newId());
       cloud.failWrite = true;
-      await expectLater(store.addEntry(e), throwsA(isA<PostgrestException>()));
-      expect(store.entries, isEmpty);
+      await store.addEntry(e);
+      expect(store.entries, hasLength(1));
+      expect(store.failedWriteCount, greaterThan(0));
       cloud.failWrite = false;
+      await store.retryFailedWrites();
+      expect(store.failedWriteCount, 0);
       await store.addEntry(e);
       await store.addEntry(e);
       expect(store.entries, hasLength(1));
       expect(cloud.tables['transactions'], hasLength(1));
       cloud.failWrite = true;
-      await expectLater(
-        store.deleteEntry(e.id),
-        throwsA(isA<PostgrestException>()),
-      );
-      expect(store.entries, hasLength(1));
+      await store.deleteEntry(e.id);
+      expect(store.entries, isEmpty);
+      expect(store.failedWriteCount, greaterThan(0));
     },
   );
 
@@ -401,6 +527,45 @@ void main() {
     expect(store.signedIn, isTrue);
     expect(store.connectionError, isNull);
   });
+
+  test(
+    'a permanently rejected write is quarantined and later writes sync',
+    () async {
+      await login();
+      cloud.rejectNextWriteTable = 'transactions';
+      await store.addEntry(
+        Entry(
+          id: 'bad-entry',
+          title: 'Invalid',
+          category: 'Cafe',
+          amount: 100,
+          date: DateTime(2026, 10, 29),
+          isIncome: false,
+        ),
+      );
+      expect(store.failedWriteCount, greaterThan(0));
+      expect(store.pendingCount, 0);
+      await store.addEntry(
+        Entry(
+          id: 'good-entry',
+          title: 'Кофе',
+          category: 'Кафе',
+          amount: 250,
+          date: DateTime(2026, 10, 29),
+          isIncome: false,
+        ),
+      );
+      expect(store.pendingCount, 0);
+      expect(
+        cloud.tables['transactions']!.any((row) => row['id'] == 'good-entry'),
+        isTrue,
+      );
+      expect(store.failedWriteCount, greaterThan(0));
+      await store.retryFailedWrites();
+      expect(store.failedWriteCount, 0);
+      expect(store.pendingCount, 0);
+    },
+  );
 
   test(
     'notification import retries without duplicates, never uploads raw text, rejects another owner',

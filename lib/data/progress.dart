@@ -35,6 +35,15 @@ class SavingGoal {
   });
   int get remaining => max(0, target - saved);
   bool get complete => saved >= target;
+  SavingGoal withSaved(int amount) => SavingGoal(
+    id: id,
+    title: title,
+    target: target,
+    saved: amount,
+    weekly: weekly,
+    nextContribution: nextContribution,
+    icon: icon,
+  );
   double get progress => target <= 0 ? 0 : (saved / target).clamp(0.0, 1.0);
   SavingGoal withWeekly(int value) => SavingGoal(
     id: id,
@@ -98,6 +107,31 @@ class SavingGoal {
     final count = civilDaysBetween(due, end) ~/ 7 + 1;
     return min(remaining, weekly * count);
   }
+}
+
+class GoalContribution {
+  final String id, goalId;
+  final int amount;
+  final DateTime date;
+  const GoalContribution({
+    required this.id,
+    required this.goalId,
+    required this.amount,
+    required this.date,
+  });
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'goalId': goalId,
+    'amount': amount,
+    'date': dayKey(date),
+  };
+  factory GoalContribution.fromJson(Map<String, dynamic> json) =>
+      GoalContribution(
+        id: json['id'] as String,
+        goalId: json['goalId'] as String,
+        amount: json['amount'] as int,
+        date: DateTime.parse(json['date'] as String),
+      );
 }
 
 class GoalForecast {

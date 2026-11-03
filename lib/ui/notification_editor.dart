@@ -14,6 +14,16 @@ Future<void> openNotificationEditor(
     return;
   }
   final parsed = parseBankNotification(row['text'] as String);
+  final date = DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int);
+  final candidates = store
+      .paymentsFor(date)
+      .where(
+        (p) =>
+            !store.isPaid(p) &&
+            p.payment.amount == parsed?.amount &&
+            p.date.difference(dateOnly(date)).inDays.abs() <= 3,
+      )
+      .toList();
   final initial = Entry(
     id: row['id'] as String,
     title: parsed?.title ?? '',
@@ -21,6 +31,9 @@ Future<void> openNotificationEditor(
     amount: parsed?.amount ?? 0,
     date: DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int),
     isIncome: parsed?.income ?? false,
+    paymentOccurrence: parsed?.income == false && candidates.length == 1
+        ? candidates.single.key
+        : null,
   );
   await Navigator.of(context).push(
     MaterialPageRoute<void>(

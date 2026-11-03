@@ -28,6 +28,8 @@ open class NotificationUploadWorker(context: Context, params: WorkerParameters) 
             try {
                 val status = post(batch, row.getJSONObject("payload"))
                 if (status in 200..299) {
+                    val record=row.getJSONObject("payload")
+                    if(record.has("planned_payment_id")) PaymentReminders(applicationContext).markPaid(batch.owner,"${record.getString("planned_payment_id")}@${record.getString("payment_on")}")
                     if (inbox.stillConfirmed(batch.owner, id)) inbox.ack(batch.owner, id)
                 } else if (status == 401 || status == 403 || status in 400..499 && status != 429) {
                     return Result.success() // Retain the queue; retry after session renewal or user correction.
@@ -38,7 +40,9 @@ open class NotificationUploadWorker(context: Context, params: WorkerParameters) 
     }
 
     protected open fun post(batch: UploadBatch, payload: JSONObject): Int {
-        val connection = URL("${batch.url}/rest/v1/transactions?on_conflict=id").openConnection() as HttpURLConnection
+        val linked=payload.has("planned_payment_id")
+        val path=if(linked) "rpc/record_bank_operation" else "transactions?on_conflict=id"
+        val connection = URL("${batch.url}/rest/v1/$path").openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "POST"
             connection.instanceFollowRedirects = false
@@ -49,7 +53,8 @@ open class NotificationUploadWorker(context: Context, params: WorkerParameters) 
             connection.setRequestProperty("Authorization", "Bearer ${batch.token}")
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Prefer", "resolution=ignore-duplicates,return=minimal")
-            connection.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+            val body=if(linked) JSONObject().put("operation",payload) else payload
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             return connection.responseCode
         } finally { connection.disconnect() }
     }

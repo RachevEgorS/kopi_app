@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kopi_finance_app/data/cloud_diary.dart';
+import 'package:kopi_finance_app/data/diary.dart';
 import 'package:kopi_finance_app/ui/design.dart';
 import 'package:kopi_finance_app/ui/notification_editor.dart';
 
@@ -24,6 +25,97 @@ void main() {
   tearDown(() async {
     store.dispose();
     await client.dispose();
+  });
+  testWidgets('salary is saved without an accounting-mode selector', (
+    tester,
+  ) async {
+    const channel = MethodChannel('kopi/notifications');
+    MethodCall? confirmation;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          confirmation = call;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: kopiTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => openNotificationEditor(context, store, {
+                'owner': 'alice',
+                'id': 'salary',
+                'text': 'Зачисление зарплаты 30000 ₽',
+                'timestamp': DateTime.now().millisecondsSinceEpoch,
+              }),
+              child: const Text('Открыть'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Открыть'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Сохранить изменения'));
+    await tester.tap(find.text('Сохранить изменения'));
+    await tester.pumpAndSettle();
+    expect(find.text('Как учитывать поступление'), findsNothing);
+    expect(confirmation?.arguments['entry']['incomeInOpening'], false);
+  });
+
+  testWidgets('matching subscription is proposed and sent with confirmation', (
+    tester,
+  ) async {
+    final now = dateOnly(DateTime.now());
+    final payment = PlannedPayment(
+      id: 'plan',
+      title: 'Интернет',
+      amount: 85000,
+      start: now,
+    );
+    store.payments = [payment];
+    const channel = MethodChannel('kopi/notifications');
+    MethodCall? confirmation;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          confirmation = call;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: kopiTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => openNotificationEditor(context, store, {
+                'owner': 'alice',
+                'id': 'expense',
+                'text': 'Покупка 850 ₽',
+                'timestamp': now.millisecondsSinceEpoch,
+              }),
+              child: const Text('Открыть'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Открыть'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Сохранить изменения'));
+    await tester.tap(find.text('Сохранить изменения'));
+    await tester.pumpAndSettle();
+    expect(
+      confirmation?.arguments['entry']['paymentOccurrence'],
+      payment.inMonth(now)!.key,
+    );
   });
   testWidgets(
     'editing a proposal queues corrected fields without ordinary transaction update',

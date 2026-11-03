@@ -259,7 +259,9 @@ void main() {
       await tapText(tester, '+ Запланировать платёж');
       await tester.enterText(find.byType(TextFormField).first, 'Интернет');
       await tester.enterText(find.byType(TextFormField).at(1), '700');
-      await tapText(tester, 'Один раз');
+      await tester.ensureVisible(find.text('Один раз').first);
+      await tester.tap(find.text('Один раз').first);
+      await tester.pumpAndSettle();
       await tapText(tester, 'Каждый месяц');
       await tapText(tester, 'Сохранить платёж');
       expect(store.payments.length, 1);

@@ -25,6 +25,7 @@ class NotificationInbox(private val context: Context) {
     private fun owner() = prefs.getString("owner", null)
     private fun verify(value: String?) { require(value != null && value == owner()) }
     fun account(value: String?) = synchronized(lock) {
+        PaymentReminders(context).reset(value)
         if (value != owner()) {
             NotificationPrompts(context).cancelAll()
             val edit = prefs.edit().clear()
@@ -95,7 +96,7 @@ class NotificationInbox(private val context: Context) {
         val waiting = current.filter { !it.optBoolean("confirmed") }
         waiting.dropLast(199).forEach { NotificationPrompts(context).cancel(it.getString("id")) }
         write(confirmed + waiting.takeLast(199) + row)
-        if (prefs.getBoolean("prompts", true) && !prefs.getBoolean("automatic", false)) NotificationPrompts(context).show(row)
+        if (prefs.getBoolean("prompts", true) && (!prefs.getBoolean("automatic", false) || (BankOperation.parse(text)?.let { it.income || PaymentReminders(context).hasCandidate(it.amount) } == true))) NotificationPrompts(context).show(row)
     }
     fun pending(value: String?): List<Map<String, Any>> = synchronized(lock) {
         verify(value)
@@ -121,6 +122,7 @@ class NotificationInbox(private val context: Context) {
             "add" -> {
                 if (row.optBoolean("editing")) return@synchronized false
                 val operation = BankOperation.parse(row.getString("text")) ?: return@synchronized false
+                if(operation.income || PaymentReminders(context).hasCandidate(operation.amount)) return@synchronized false
                 row.put("confirmed", true).put("payload", payload(row, operation)).put("text", "")
             }
             else -> return@synchronized false
@@ -144,7 +146,11 @@ class NotificationInbox(private val context: Context) {
         require(amount in 1..99999999999L && title.length in 1..100 && category.length in 1..60)
         require(Regex("\\d{4}-\\d{2}-\\d{2}").matches(date))
         val operation = BankOperation(amount, data["income"] == true, title, category)
-        row.put("confirmed", true).put("payload", payload(row, operation).put("occurred_on", date)).put("text", "")
+        val linked=(data["paymentOccurrence"] as? String)?.split('@')
+        require(linked==null || !operation.income && linked.size==2)
+        val record=payload(row, operation).put("occurred_on", date).put("income_in_opening",operation.income && data["incomeInOpening"]==true)
+        if(linked!=null) record.put("planned_payment_id",linked[0]).put("payment_on",linked[1])
+        row.put("confirmed", true).put("payload",record).put("text", "")
         write(rows().map { if (it.getString("id") == id) row else it })
         NotificationPrompts(context).show(row)
         NotificationUploadWorker.enqueue(context)

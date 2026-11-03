@@ -14,6 +14,7 @@ import 'ui/education.dart';
 import 'ui/screens.dart';
 import 'ui/finance_flow.dart';
 import 'data/notification_import.dart';
+import 'data/notification_onboarding.dart';
 import 'ui/notification_editor.dart';
 
 Future<void> main() async {
@@ -46,7 +47,10 @@ class _ConnectedKopiAppState extends State<ConnectedKopiApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     notificationTimer = Timer.periodic(const Duration(seconds: 8), (_) {
-      if (foreground) unawaited(store?.importAutomaticNotifications());
+      if (foreground) {
+        unawaited(store?.importAutomaticNotifications());
+        if ((store?.pendingCount ?? 0) > 0) unawaited(store?.refreshCloud());
+      }
     });
     boot();
   }
@@ -135,41 +139,10 @@ class KopiApp extends StatelessWidget {
     locale: const Locale('ru'),
     supportedLocales: const [Locale('ru')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    builder: (context, child) {
-      final cloud = store is CloudDiaryStore ? store as CloudDiaryStore : null;
-      if (cloud?.connectionError == null || !store.signedIn) return child!;
-      return Column(
-        children: [
-          Material(
-            color: KopiColors.soft,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        cloud!.connectionError!,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: cloud.refreshing ? null : cloud.refreshCloud,
-                      child: const Text('Обновить'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(child: child!),
-        ],
-      );
-    },
+    scrollBehavior: const MaterialScrollBehavior().copyWith(
+      overscroll: false,
+      scrollbars: false,
+    ),
     home: AppFlow(store: store, clock: clock ?? DateTime.now),
   );
 }
@@ -191,6 +164,7 @@ class _AppFlowState extends State<AppFlow> with WidgetsBindingObserver {
   Timer? timer;
   bool openingNotification = false;
   bool editingBudget = false;
+  final notificationOnboarding = NotificationOnboarding();
   DiaryStore get store => widget.store;
 
   @override
@@ -206,10 +180,26 @@ class _AppFlowState extends State<AppFlow> with WidgetsBindingObserver {
     timer = Timer.periodic(const Duration(seconds: 2), (_) {
       checkDate();
       unawaited(checkNotificationAction());
+      unawaited(checkNotificationPermission());
     });
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => checkNotificationAction(),
     );
+  }
+
+  Future<void> checkNotificationPermission() async {
+    if (!mounted ||
+        openingNotification ||
+        store is! CloudDiaryStore ||
+        !store.signedIn ||
+        (screen != Screen.budget && screen != Screen.diary) ||
+        (!store.educationSkipped &&
+            !store.seenEducation.contains(screen.name)) ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    await notificationOnboarding.requestOnce(store.preferences);
   }
 
   Future<void> checkNotificationAction() async {
@@ -327,6 +317,7 @@ class _AppFlowState extends State<AppFlow> with WidgetsBindingObserver {
         },
       ),
       Screen.budget => BudgetScreen(
+        store: store,
         key: ValueKey('budget-${monthKey(selectedMonth)}'),
         month: selectedMonth,
         initial: store.budgets[monthKey(selectedMonth)],

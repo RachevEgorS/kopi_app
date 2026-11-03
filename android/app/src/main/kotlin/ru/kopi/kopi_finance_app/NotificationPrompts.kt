@@ -21,7 +21,7 @@ class NotificationPrompts(private val context: Context) {
         return manager.areNotificationsEnabled() && (Build.VERSION.SDK_INT < 26 || manager.getNotificationChannel(CHANNEL).importance != NotificationManager.IMPORTANCE_NONE)
     }
     fun cancel(id: String) = manager.cancel(id, 1)
-    fun cancelAll() = manager.cancelAll()
+    fun cancelAll() { manager.activeNotifications.filter { it.tag?.startsWith("payment:")!=true }.forEach { manager.cancel(it.tag,it.id) } }
     private fun intent(row: JSONObject, action: String): Intent = Intent(context, NotificationActionReceiver::class.java)
         .setAction(action).setData(Uri.parse("kopi-action://$action/${row.getString("owner")}/${row.getString("id")}"))
         .putExtra("owner", row.getString("owner")).putExtra("id", row.getString("id"))
@@ -43,6 +43,7 @@ class NotificationPrompts(private val context: Context) {
         val operation = if (confirmed) row.getJSONObject("payload").let {
             BankOperation(it.getLong("amount_kopecks"), it.getString("kind") == "income", it.getString("title"), it.getString("category"))
         } else BankOperation.parse(row.getString("text")) ?: return
+        val review = operation.income || PaymentReminders(context).hasCandidate(operation.amount)
         val amount = if (confirmed) row.getJSONObject("payload").getLong("amount_kopecks") else operation.amount
         val formatted = NumberFormat.getNumberInstance(Locale.forLanguageTag("ru-RU")).apply { maximumFractionDigits = 2 }.format(amount / 100.0) + " ₽"
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, CHANNEL) else Notification.Builder(context)
@@ -55,7 +56,7 @@ class NotificationPrompts(private val context: Context) {
             .setContentIntent(edit(row)).setAutoCancel(false)
         if (!confirmed) {
             builder.setDeleteIntent(broadcast(row, "dismiss"))
-                .addAction(action("Добавить", broadcast(row, "add")))
+                .addAction(action(if(review) "Проверить" else "Добавить", if(review) edit(row) else broadcast(row, "add")))
                 .addAction(action("Изменить", edit(row)))
                 .addAction(action("Пропустить", broadcast(row, "skip")))
         }

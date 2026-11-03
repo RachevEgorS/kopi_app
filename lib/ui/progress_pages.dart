@@ -8,8 +8,10 @@ import 'design.dart';
 import 'finance_widgets.dart';
 import 'goal_icons.dart';
 import 'notification_settings.dart';
+import 'goal_contributions.dart';
+import '../data/notification_import.dart';
 
-const _padding = EdgeInsets.symmetric(horizontal: 28);
+const _padding = EdgeInsets.symmetric(horizontal: 20);
 const _small = TextStyle(fontSize: 12, color: KopiColors.muted, height: 1.5);
 const _gold = Color(0xFFD4B471);
 
@@ -55,6 +57,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       const Color(0xFFD7C9C2),
     ];
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: _padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,14 +83,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 8),
           Center(
             child: Semantics(
               label:
                   'Расходы за месяц: ${money(stats.total)}. ${stats.categories.map((c) => '${c.name}: ${money(c.amount)}').join('. ')}',
               child: ExcludeSemantics(
                 child: SizedBox.square(
-                  dimension: 170,
+                  dimension: 148,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -200,19 +203,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           const SizedBox(height: 16),
           const Heading('Наблюдения', size: 24),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           Text(
             stats.observation,
             style: const TextStyle(fontSize: 13, height: 1.6),
           ),
           const SizedBox(height: 6),
           Text(stats.comparison, style: _small),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           const Divider(),
           InkWell(
             onTap: onSubscriptions,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -290,6 +293,7 @@ class GoalsScreen extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
+    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
     padding: _padding,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,6 +352,17 @@ class GoalsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   _GoalBar(goal),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => GoalContributionsScreen(
+                          store: store,
+                          goalId: goal.id,
+                        ),
+                      ),
+                    ),
+                    child: const Text('Пополнить · история взносов'),
+                  ),
                   const SizedBox(height: 9),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,6 +508,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
         forecast = widget.goal.forecast(widget.today, extra: extra);
     final maxExtra = max(500000, min(10000000, goal.weekly * 2));
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: _padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,6 +677,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     final streak = currentStreak(store.checkedDays, today),
         checked = store.checkedDays.contains(dayKey(today));
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: _padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,9 +686,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             'Твои маленькие победы',
             'Регулярность важнее идеального результата.',
           ),
-          const SizedBox(height: 35),
+          const SizedBox(height: 12),
           const Center(child: Flower(size: 44, color: _gold)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Center(
             child: Heading(
               '$streak ${plural(streak, 'день', 'дня', 'дней')}',
@@ -688,7 +705,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               style: const TextStyle(fontSize: 11, color: KopiColors.muted),
             ),
           ),
-          const SizedBox(height: 42),
+          const SizedBox(height: 18),
           Row(
             children: [
               for (var i = 6; i >= 0; i--)
@@ -748,7 +765,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 35),
+          const SizedBox(height: 12),
           if (error != null)
             Text(error!, style: const TextStyle(color: KopiColors.error)),
           KopiButton(
@@ -756,7 +773,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             onPressed: checked ? null : check,
             busy: busy,
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 16),
           const Heading('Твои значки', size: 24),
           const SizedBox(height: 10),
           _BadgeRow(
@@ -780,14 +797,11 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             KopiColors.lavender,
             store.badges.contains('goal') || store.goals.any((g) => g.complete),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           if (store.supportEnabled)
             const Padding(
-              padding: EdgeInsets.only(bottom: 24),
-              child: Text(
-                'День без трат тоже считается. Главное — проверить записи, а не отказаться от нужного.',
-                style: _small,
-              ),
+              padding: EdgeInsets.only(bottom: 4),
+              child: Text('День без трат тоже считается.', style: _small),
             ),
         ],
       ),
@@ -822,6 +836,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       error = null;
     });
     try {
+      if (reminders == true && NotificationBridge.supported) {
+        await NotificationBridge.requestPost();
+      }
       await widget.store.savePreferences(
         reminders: reminders,
         support: support,
@@ -859,34 +876,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final store = widget.store;
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: _padding,
       child: Column(
         children: [
-          const SizedBox(height: 20),
-          Container(
-            width: 62,
-            height: 62,
-            decoration: const BoxDecoration(
-              color: Color(0xFFECD9E3),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Heading(
-              store.name.trim().isEmpty
-                  ? 'К'
-                  : store.name.trim().characters.first.toUpperCase(),
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Heading(
-            store.name.isEmpty ? 'Твой дневник' : store.name,
-            size: 26,
-            align: TextAlign.center,
-          ),
           const SizedBox(height: 8),
-          Text(store.email, textAlign: TextAlign.center, style: _small),
-          const SizedBox(height: 8),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: const Color(0xFFECD9E3),
+                child: Heading(
+                  store.name.trim().isEmpty
+                      ? 'К'
+                      : store.name.trim().characters.first.toUpperCase(),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Heading(
+                      store.name.isEmpty ? 'Твой дневник' : store.name,
+                      size: 24,
+                    ),
+                    Text(store.email, style: _small),
+                  ],
+                ),
+              ),
+            ],
+          ),
           TextButton(
             onPressed: busy
                 ? null
@@ -904,24 +925,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           if (store is CloudDiaryStore) ...[
-            TextButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => NotificationSettingsScreen(store: store),
+            if (store.pendingCount > 0 ||
+                store.failedWriteCount > 0 ||
+                store.connectionError != null)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Text(
+                      store.failedWriteCount > 0
+                          ? 'Требуют внимания: ${store.failedWriteCount}'
+                          : store.pendingCount > 0
+                          ? 'Сохранено на телефоне. Ждут отправки: ${store.pendingCount}'
+                          : 'Не удалось обновить дневник',
+                      style: _small,
+                    ),
+                    if (store.failedWriteCount > 0)
+                      TextButton(
+                        onPressed: store.retryFailedWrites,
+                        child: const Text('Повторить отправку'),
+                      ),
+                  ],
                 ),
               ),
-              icon: const Icon(Icons.notifications_none, size: 18),
-              label: const Text('Уведомления банков'),
-            ),
-            TextButton.icon(
-              onPressed: store.refreshing ? null : store.refreshCloud,
-              icon: const Icon(Icons.sync, size: 18),
-              label: Text(
-                store.refreshing
-                    ? 'Обновляем дневник…'
-                    : 'Обновить из аккаунта',
-              ),
-            ),
+
             if (store.pendingEmail != null)
               Text(
                 'Подтверди новый адрес ${store.pendingEmail} по ссылкам в письмах.',
@@ -930,7 +957,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           _SettingRow(
             'Мой бюджет',
-            'Доходы, лимиты и резервы',
+            'Доход, мечты и обязательные платежи',
             Glyph.bag,
             KopiColors.lavender,
             onTap: widget.onBudget,
@@ -944,7 +971,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _SettingRow(
             'Напоминания',
-            'Настройка сохранена; уведомления появятся позже',
+            'Время и повтор задаются отдельно для каждого платежа.',
             Glyph.bell,
             KopiColors.sand,
             value: store.remindersEnabled ? 'Вкл.' : 'Выкл.',
@@ -971,6 +998,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
             KopiColors.sand,
             onTap: widget.onAchievements,
           ),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text(
+              'Уведомления и синхронизация',
+              style: TextStyle(fontSize: 13),
+            ),
+            children: [
+              if (store is CloudDiaryStore) ...[
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => NotificationSettingsScreen(store: store),
+                    ),
+                  ),
+                  icon: const Icon(Icons.notifications_none, size: 18),
+                  label: const Text('Уведомления банков'),
+                ),
+                TextButton.icon(
+                  onPressed: store.refreshing ? null : store.refreshCloud,
+                  icon: const Icon(Icons.sync, size: 18),
+                  label: Text(
+                    store.refreshing
+                        ? 'Обновляем дневник…'
+                        : 'Обновить из аккаунта',
+                  ),
+                ),
+              ],
+              if (NotificationBridge.supported)
+                TextButton(
+                  onPressed: busy ? null : () => preferences(reminders: true),
+                  child: const Text('Разрешить уведомления о платежах'),
+                ),
+            ],
+          ),
           const SizedBox(height: 18),
           if (error != null)
             Padding(
@@ -993,7 +1054,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 11),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -1103,6 +1164,7 @@ class _GoalEditorState extends State<GoalEditor> {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.fromLTRB(
         28,
         8,
@@ -1210,7 +1272,7 @@ class _GoalEditorState extends State<GoalEditor> {
                 height: 1.6,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
             if (error != null)
               Text(error!, style: const TextStyle(color: KopiColors.error)),
             KopiButton('Сохранить мечту', onPressed: save, busy: busy),
@@ -1275,6 +1337,7 @@ class _ProfileEditorState extends State<ProfileEditor> {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.fromLTRB(
         28,
         8,
@@ -1335,6 +1398,7 @@ Future<void> showEducation(
   backgroundColor: KopiColors.background,
   builder: (ctx) => SafeArea(
     child: SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1345,7 +1409,7 @@ Future<void> showEducation(
           for (final item in const [
             (
               'План на месяц',
-              'Укажи доступные деньги, лимит и резервы. Новые доходы добавляются через «+». Ожидаемую зарплату пока не учитываем.',
+              'Укажи доход за месяц, мечты и обязательные платежи. Поступления подтверждают план; всё сверх него увеличивает бюджет. Сегодняшние покупки уменьшают остаток на сегодня целиком.',
             ),
             (
               'Записи и календарь',
@@ -1361,7 +1425,7 @@ Future<void> showEducation(
             ),
             (
               'Твой аккаунт',
-              'Финансовые данные сохраняются в аккаунте и доступны после входа. Обучение и отметки дней пока хранятся на устройстве отдельно для каждого аккаунта. Напоминания пока не отправляются. Копи не переводит деньги и не отменяет подписки.',
+              'Данные доступны без сети после первого входа и синхронизируются с аккаунтом. Отметки дней и обучение тоже синхронизируются. Напоминания требуют разрешения на уведомления; Android может задержать их при энергосбережении. Копи не переводит деньги и не отменяет подписки.',
             ),
           ])
             Padding(
@@ -1481,7 +1545,7 @@ class _BadgeRow extends StatelessWidget {
     label: '$title. $subtitle. ${earned ? 'Получен' : 'Ещё впереди'}',
     child: ExcludeSemantics(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: KopiColors.line, width: .6)),
         ),

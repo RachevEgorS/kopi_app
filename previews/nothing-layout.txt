@@ -1,0 +1,20 @@
+Resolving dependencies...
+Downloading packages...
+  jni 1.1.0 (1.1.1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  shared_preferences_android 2.5.3 (2.5.4 available)
+  shared_preferences_foundation 2.5.7 (2.6.1 available)
+  test_api 0.7.12 (0.7.15 available)
+  vector_math 2.4.0 (2.4.4 available)
+Got dependencies!
+7 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading C:/Users/buratino/.codex/projects/kopi-frontend/test/nothing_phone_test.dart
+00:00 +0: Notification denial is remembered across launches and concurrent checks
+00:00 +1: A missing native bridge can retry next launch without a polling loop
+00:00 +2: Income has a plus, expense a minus, scheduled payment no sign
+00:00 +3: Selected dream icon remains square and new icons are searchable
+00:01 +4: Calendar summary gives access to every payment on a busy day
+00:02 +5: Capture compact phone screens at 360 by 800 with safe areas
+00:03 +6: All tests passed!

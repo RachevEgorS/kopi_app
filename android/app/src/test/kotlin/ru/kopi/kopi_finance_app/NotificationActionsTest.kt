@@ -18,6 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -113,6 +114,49 @@ class NotificationActionsTest {
         assertEquals(Result.success(), worker.doWork())
         assertTrue(worker.ids.isEmpty())
         assertTrue(inbox.stillConfirmed(owner, "event-1"))
+    }
+    @Test fun reminderUsesChosenMinuteAndRepeatsUntilPaid() {
+        val reminders=PaymentReminders(context)
+        val day=LocalDate.now().plusDays(8)
+        val plan=mapOf<String,Any?>("id" to "custom", "title" to "Кредит", "amount" to 1000000, "start" to day.toString(), "monthly" to false, "reminderDays" to 0, "reminderMinute" to 827, "repeatMinutes" to 30)
+        reminders.configure(owner,true,listOf(plan),emptyList())
+        val notifications=shadowOf(context.getSystemService(NotificationManager::class.java))
+        val prefs=context.getSharedPreferences("kopi_payment_reminders",Context.MODE_PRIVATE)
+        reminders.tick(day,13,46); assertEquals(0, notifications.allNotifications.size)
+        reminders.tick(day,13,47); assertEquals(1, notifications.allNotifications.size)
+        reminders.tick(day,14,16); assertEquals(1,prefs.getStringSet("sent",emptySet())!!.size)
+        reminders.tick(day,14,17); assertEquals(2,prefs.getStringSet("sent",emptySet())!!.size)
+        reminders.markPaid(owner,"custom@$day")
+        reminders.tick(day,14,47); assertEquals(0, notifications.allNotifications.size)
+    }
+    @Test fun scheduledReminderAppearsAfterNineOnceAndPaidCancelsIt() {
+        val reminders=PaymentReminders(context)
+        val day=LocalDate.now().plusDays(5)
+        val due=day.plusDays(1)
+        val plan=mapOf<String,Any?>("id" to "payment-1","title" to "Интернет","amount" to 70000,"start" to due.toString(),"monthly" to false,"reminderDays" to 1)
+        reminders.configure(owner,true,listOf(plan),emptyList())
+        val notifications=shadowOf(context.getSystemService(NotificationManager::class.java))
+        reminders.tick(day,8); assertEquals(0,notifications.allNotifications.size)
+        reminders.tick(day,9); assertEquals(1,notifications.allNotifications.size)
+        reminders.tick(day,10); assertEquals(1,notifications.allNotifications.size)
+        reminders.markPaid(owner,"payment-1@$due"); assertEquals(0,notifications.allNotifications.size)
+        reminders.tick(day,11); assertEquals(0,notifications.allNotifications.size)
+    }
+    @Test fun editedNotificationCarriesPaymentLinkAndIncomeAccountingChoice() {
+        inbox.action(owner,"event-1","edit")
+        inbox.confirmEdit(owner,"event-1",mapOf("amount" to 85000,"income" to false,"title" to "Подписка","category" to "Подписки","date" to "2026-10-30","paymentOccurrence" to "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb@2026-10-30"))
+        val row=inbox.find(owner,"event-1")!!.getJSONObject("payload")
+        assertEquals("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",row.getString("planned_payment_id"))
+        assertEquals("2026-10-30",row.getString("payment_on"))
+        assertFalse(row.getBoolean("income_in_opening"))
+    }
+    @Test fun bankConfirmationCannotSilentlyAddSalary() {
+        val row=inbox.find(owner,"event-1")!!.put("text","Зачисление зарплаты 30000 ₽")
+        context.getSharedPreferences("kopi_notification_inbox",Context.MODE_PRIVATE).edit().putString("queue",JSONArray().put(row).toString()).commit()
+        assertFalse(inbox.action(owner,"event-1","add"))
+        inbox.action(owner,"event-1","edit")
+        inbox.confirmEdit(owner,"event-1",mapOf("amount" to 3000000,"income" to true,"title" to "Зарплата","category" to "Зарплата","date" to "2026-10-30","incomeInOpening" to true))
+        assertTrue(inbox.find(owner,"event-1")!!.getJSONObject("payload").getBoolean("income_in_opening"))
     }
 }
 

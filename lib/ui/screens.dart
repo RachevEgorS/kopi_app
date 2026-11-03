@@ -1,3 +1,4 @@
+import 'finance_pages.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
@@ -6,7 +7,7 @@ import 'design.dart';
 import 'education.dart';
 import 'finance_widgets.dart';
 
-const _pad = EdgeInsets.symmetric(horizontal: 28);
+const _pad = EdgeInsets.symmetric(horizontal: 20);
 
 class ScreenTop extends StatelessWidget {
   final VoidCallback? onBack, onProfile;
@@ -21,7 +22,7 @@ class ScreenTop extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+    padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
     child: Row(
       children: [
         if (brand)
@@ -58,6 +59,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) => SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: bounds.maxHeight),
         child: IntrinsicHeight(
@@ -318,6 +320,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
+    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
     child: AutofillGroup(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,11 +449,13 @@ class _AuthScreenState extends State<AuthScreen> {
 }
 
 class BudgetScreen extends StatefulWidget {
+  final DiaryStore? store;
   final DateTime month;
   final Budget? initial;
   final VoidCallback onBack;
   final Future<void> Function(Budget?) onSave;
   const BudgetScreen({
+    this.store,
     super.key,
     required this.month,
     this.initial,
@@ -465,12 +470,14 @@ class _BudgetScreenState extends State<BudgetScreen> {
   final form = GlobalKey<FormState>();
   late final List<TextEditingController> fields;
   bool busy = false;
+  bool carryForward = false;
   String? error;
   @override
   void initState() {
     super.initState();
     final b = widget.initial;
-    fields = [b?.income, b?.limit, b?.reserve, b?.dreams]
+    carryForward = b?.carryForward ?? false;
+    fields = [b?.income, b?.dreams, b?.reserve]
         .map(
           (v) => TextEditingController(
             text: v == null ? '' : money(v, currency: false),
@@ -501,9 +508,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
             ? null
             : Budget(
                 income: values[0],
-                limit: values[1],
+                limit: 99999999999,
                 reserve: values[2],
-                dreams: values[3],
+                dreams: values[1],
+                simplePlan: true,
+                carryForward: carryForward,
               ),
       );
     } catch (_) {
@@ -518,6 +527,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
+    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -526,7 +536,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
           onHelp: () => showKopiMessage(
             context,
             'Оставим место для важного',
-            'В доход укажи уже доступные деньги на месяц — ожидаемую зарплату пока не учитывай. Лимит — максимум всех расходов. Резерв платежей и деньги на мечты вычитаются из суммы для ежедневных трат. Ненужный резерв можно оставить пустым. План можно изменить в профиле.',
+            'Укажи общий доход месяца и сумму на мечты. Добавь кредит и подписки в обязательные платежи. Остальное распределим на повседневные покупки. Это план: он учитывает зарплату, даже если она поступит позже.',
           ),
         ),
         Padding(
@@ -548,29 +558,88 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
-                for (var i = 0; i < 4; i++)
+                for (
+                  var i = 0;
+                  i <
+                      (widget.initial?.reserve != null &&
+                              widget.initial!.reserve > 0
+                          ? 3
+                          : 2);
+                  i++
+                )
                   KopiField(
                     label: [
                       'Доход за месяц, ₽',
-                      'Лимит всех расходов, ₽',
-                      'Резерв будущих платежей, ₽',
                       'Отложить на мечты, ₽',
+                      'Общий резерв прежнего плана, ₽',
                     ][i],
                     controller: fields[i],
-                    hint: ['60 000', '50 000', '0', '0'][i],
+                    hint: i == 0 ? '60 000' : '0',
                     moneyInput: true,
-                    action: i == 3
-                        ? TextInputAction.done
-                        : TextInputAction.next,
-                    onSubmitted: i == 3 ? (_) => save() : null,
-                    validator: (v) {
-                      if ((v ?? '').trim().isEmpty && i >= 2) return null;
-                      return parseMoney(v ?? '') == null
-                          ? 'Введи сумму от 0, не более двух знаков после запятой'
-                          : null;
+                    onChanged: (_) => setState(() {}),
+                    validator: (v) => (v ?? '').trim().isEmpty && i > 0
+                        ? null
+                        : parseMoney(v ?? '') == null
+                        ? 'Укажи сумму от нуля'
+                        : null,
+                  ),
+                const Text(
+                  'Это план месяца, а не баланс банковского счёта. Зарплата, записанная в доходы, подтверждает план. Поступления сверх плана увеличивают бюджет.',
+                  style: TextStyle(fontSize: 12, color: KopiColors.muted),
+                ),
+                const SizedBox(height: 20),
+                const Heading('Обязательные платежи', size: 20),
+                const Text(
+                  'Добавь кредит, аренду и подписки с датами. Их суммы автоматически вычтем из денег на повседневные покупки.',
+                  style: TextStyle(fontSize: 12, color: KopiColors.muted),
+                ),
+                if (widget.store != null) ...[
+                  for (final item in widget.store!.paymentsFor(widget.month))
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(item.payment.title),
+                      trailing: Text(money(item.payment.amount)),
+                    ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Добавить платёж'),
+                    onPressed: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (ctx) => Scaffold(
+                            appBar: AppBar(
+                              title: const Text('Обязательный платёж'),
+                            ),
+                            body: SafeArea(
+                              child: PaymentScreen(
+                                store: widget.store!,
+                                date: widget.month,
+                                today: DateTime.now(),
+                                onComplete: () => Navigator.pop(ctx),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                      if (mounted) setState(() {});
                     },
                   ),
-                const SizedBox(height: 58),
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  'На повседневные покупки: ${money((parseMoney(fields[0].text) ?? 0) - (parseMoney(fields[1].text) ?? 0) - max(parseMoney(fields[2].text) ?? 0, widget.store?.paymentsFor(widget.month).fold<int>(0, (sum, p) => sum + p.payment.amount) ?? 0))} в месяц',
+                  style: const TextStyle(fontSize: 15),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Перенести остаток прошлого месяца'),
+                  subtitle: const Text(
+                    'Включи, если хочешь добавить неиспользованные деньги прошлого месяца.',
+                  ),
+                  value: carryForward,
+                  onChanged: (v) => setState(() => carryForward = v),
+                ),
+                const SizedBox(height: 24),
                 if (error != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -676,6 +745,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
       backgroundColor: KopiColors.background,
       builder: (ctx) => SafeArea(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -702,7 +772,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   widget.onBudget();
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               if (widget.onSubscriptions != null) ...[
                 KopiButton(
                   'Регулярные платежи',
@@ -712,7 +782,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     widget.onSubscriptions!();
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
               ],
               KopiButton(
                 examples
@@ -724,7 +794,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   setState(() => examples = !examples);
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               KopiButton(
                 'Выйти из дневника',
                 secondary: true,
@@ -761,6 +831,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           maxHeight: MediaQuery.sizeOf(ctx).height * .75,
         ),
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -825,7 +896,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
               .entriesFor(widget.month)
               .where((e) => !e.isIncome)
               .toList();
-    final income = examples ? 6000000 : widget.store.incomeFor(widget.month);
+    final income = examples
+        ? 6000000
+        : widget.store.incomeFor(widget.month) +
+              widget.store.carriedFor(widget.month);
+    final available = examples
+        ? 4180000
+        : widget.store.availableFor(widget.month);
     final reserve = examples ? 1100000 : widget.store.reserveFor(widget.month);
     final upcoming = widget.store
         .paymentsFor(widget.month)
@@ -849,14 +926,21 @@ class _DiaryScreenState extends State<DiaryScreen> {
         : DailyAllowance.calculate(
             limit: budget.limit,
             spent: spent,
-            available: income - spent,
+            available: available,
             reserve: reserve,
             dreams: dreams,
             days: days,
+            spentToday: isCurrent && !examples
+                ? widget.store.everydaySpentOn(widget.today)
+                : 0,
           );
-    final progress = budget == null || budget.limit == 0
+    final previewCount = MediaQuery.sizeOf(context).height >= 900 ? 2 : 1;
+    final progressTotal = budget?.simplePlan == true
+        ? income
+        : (budget?.limit ?? 0);
+    final progress = budget == null || progressTotal == 0
         ? (spent > 0 ? 1.0 : 0.0)
-        : (spent / budget.limit).clamp(0.0, 1.0);
+        : (spent / progressTotal).clamp(0.0, 1.0);
     return Column(
       children: [
         ScreenTop(
@@ -865,11 +949,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
           onHelp: () => showKopiMessage(
             context,
             'Сколько можно сегодня',
-            'Берём меньшую сумму: остаток лимита или доступные деньги. Вычитаем резерв неоплаченных платежей и деньги на мечты. Делим на оставшиеся дни месяца, включая сегодня.\n\nОжидаемую зарплату не учитываем. Если денег не хватает, показываем 0 ₽ и дефицит.',
+            'Из бюджета месяца вычитаем обязательные платежи, мечты и прошлые расходы. Распределяем на оставшиеся дни. Сегодняшние повседневные покупки вычитаем полностью: расход 500 ₽ уменьшает остаток на сегодня на 500 ₽. Завтра перерассчитаем план.',
           ),
         ),
         Expanded(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: _pad,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -906,7 +991,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
                 Center(
                   child: Text(
                     isCurrent
@@ -920,7 +1005,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 6),
                 Center(
                   child: Heading(
                     budget == null
@@ -930,7 +1015,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                 ? max(0, allowance!.free)
                                 : allowance!.amount,
                           ),
-                    size: 38,
+                    size: 34,
                   ),
                 ),
                 const SizedBox(height: 9),
@@ -941,7 +1026,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         : () => showKopiMessage(
                             context,
                             'Твой дневной ориентир',
-                            'Лимит: ${money(budget.limit)}\nПотрачено: ${money(spent)}\nДоступный остаток: ${money(income - spent)}\nРезерв платежей: ${money(reserve)}\nНа мечты: ${money(dreams)}\n${isPast ? 'Свободный остаток' : 'Осталось дней: $days\nСвободная сумма'}: ${money(allowance!.free)}\n\nРезерв — большая из двух сумм: оставшийся резерв плана или неоплаченные платежи месяца. Так запланированное не вычитается дважды.\n\nОриентир помогает планировать, а решение всегда за тобой.',
+                            'Доход плана: ${money(income)}\nПотрачено: ${money(spent)}\nОстаток бюджета: ${money(available)}\nОбязательные платежи: ${money(reserve)}\nНа мечты: ${money(dreams)}\nОсталось дней: $days\nСвободная сумма: ${money(allowance!.free)}\n\nСегодняшние повседневные расходы вычитаются из дневной суммы полностью. Оплату обязательного платежа отмечай в календаре, чтобы она освободила резерв.',
                           ),
                     style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
@@ -988,14 +1073,14 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   ),
                 const SizedBox(height: 8),
                 const Divider(),
-                const SizedBox(height: 22),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    _Metric('Доход за месяц', money(income)),
+                    _Metric('Средства месяца', money(income)),
                     _Metric('Потрачено', money(spent)),
                   ],
                 ),
-                const SizedBox(height: 23),
+                const SizedBox(height: 6),
                 Semantics(
                   label:
                       'Израсходовано ${(progress * 100).round()} процентов лимита',
@@ -1023,7 +1108,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       child: Text(
                         budget == null
                             ? 'Лимит не задан'
-                            : 'Лимит ${money(budget.limit)}',
+                            : 'Бюджет ${money(progressTotal)}',
                         style: const TextStyle(
                           fontSize: 10,
                           color: KopiColors.muted,
@@ -1033,7 +1118,30 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                _SectionTitle(
+                  'Доходы',
+                  'Все записи →',
+                  widget.onHistory ?? () {},
+                ),
+                if (!examples &&
+                    widget.store
+                        .entriesFor(widget.month)
+                        .where((e) => e.isIncome)
+                        .isEmpty)
+                  const _Empty('Поступлений пока нет'),
+                if (!examples)
+                  ...widget.store
+                      .entriesFor(widget.month)
+                      .where((e) => e.isIncome)
+                      .take(previewCount)
+                      .map(
+                        (e) => InkWell(
+                          onTap: () => widget.onEntry?.call(e),
+                          child: ExpenseRow(entry: e),
+                        ),
+                      ),
+                const SizedBox(height: 8),
                 _SectionTitle('Расходы', 'Все записи →', () {
                   if (widget.onHistory != null && !examples) {
                     widget.onHistory!();
@@ -1046,7 +1154,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     'Пока без записей\nНажми «+», чтобы добавить первый расход.',
                   ),
                 ...entries
-                    .take(3)
+                    .take(previewCount)
                     .map(
                       (entry) => InkWell(
                         onTap: widget.onEntry == null || examples
@@ -1055,9 +1163,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         child: ExpenseRow(entry: entry),
                       ),
                     ),
-                const SizedBox(height: 13),
+                const SizedBox(height: 8),
                 _SectionTitle(
-                  'Скоро',
+                  'Обязательные платежи',
                   'Календарь →',
                   widget.onCalendar ?? () => later('Календарь'),
                 ),
@@ -1074,7 +1182,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   )
                 else if (upcoming.isNotEmpty)
                   ...upcoming
-                      .take(3)
+                      .take(previewCount)
                       .map(
                         (p) => FinanceRow(
                           title: p.payment.title,
@@ -1088,7 +1196,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   const _Empty(
                     'Здесь появятся ближайшие платежи.\nПока всё спокойно.',
                   ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 4),
               ],
             ),
           ),
@@ -1177,21 +1285,18 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.title, this.link, this.onTap);
   @override
   Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Expanded(child: Heading(title, size: 23)),
-      Flexible(
-        child: TextButton(
-          onPressed: onTap,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.only(left: 12),
-            minimumSize: const Size(48, 48),
-          ),
-          child: Text(
-            link,
-            style: const TextStyle(fontSize: 10),
-            textAlign: TextAlign.right,
-          ),
+      Expanded(child: Heading(title, size: 20)),
+      TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.only(left: 12),
+          minimumSize: const Size(48, 48),
+        ),
+        child: Text(
+          link,
+          style: const TextStyle(fontSize: 10),
+          textAlign: TextAlign.right,
         ),
       ),
     ],
@@ -1230,7 +1335,7 @@ class ExpenseRow extends StatelessWidget {
             _ => (Glyph.bag, KopiColors.soft),
           };
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 11),
+      padding: const EdgeInsets.symmetric(vertical: 9),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: KopiColors.line, width: .6)),
       ),
@@ -1261,7 +1366,11 @@ class ExpenseRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${payment ? '' : '−'}${money(entry.amount)}',
+            '${entry.isIncome
+                ? '+'
+                : payment
+                ? ''
+                : '−'}${money(entry.amount)}',
             style: const TextStyle(fontSize: 12),
           ),
         ],
@@ -1367,6 +1476,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.fromLTRB(
         28,
         8,

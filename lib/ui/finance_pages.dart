@@ -1,3 +1,4 @@
+import '../data/notification_import.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../data/diary.dart';
@@ -36,7 +37,8 @@ class HistoryScreen extends StatelessWidget {
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -123,6 +125,8 @@ class _OperationScreenState extends State<OperationScreen> {
   late final TextEditingController amount, note;
   late final String id;
   late bool income;
+  bool? incomeInOpening;
+  String? linkedPayment;
   late String category;
   late DateTime date;
   bool busy = false;
@@ -145,6 +149,10 @@ class _OperationScreenState extends State<OperationScreen> {
     final e = widget.initial;
     id = e?.id ?? widget.store.newId();
     income = e?.isIncome ?? false;
+    incomeInOpening = widget.onSubmit != null && income
+        ? null
+        : (e?.incomeInOpening ?? false);
+    linkedPayment = e?.paymentOccurrence;
     category = e?.category ?? 'Кафе';
     date = e?.date ?? dateOnly(widget.today);
     amount = TextEditingController(
@@ -162,6 +170,7 @@ class _OperationScreenState extends State<OperationScreen> {
 
   Future<void> save() async {
     if (busy || !form.currentState!.validate()) return;
+
     setState(() {
       busy = true;
       error = null;
@@ -174,7 +183,8 @@ class _OperationScreenState extends State<OperationScreen> {
       amount: parseMoney(amount.text)!,
       date: dateOnly(date),
       isIncome: income,
-      paymentOccurrence: widget.initial?.paymentOccurrence,
+      incomeInOpening: widget.initial?.incomeInOpening ?? false,
+      paymentOccurrence: income ? null : linkedPayment,
     );
     try {
       if (widget.onSubmit != null) {
@@ -221,7 +231,8 @@ class _OperationScreenState extends State<OperationScreen> {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.symmetric(horizontal: 28),
+    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+    padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Form(
       key: form,
       child: Column(
@@ -242,10 +253,22 @@ class _OperationScreenState extends State<OperationScreen> {
                 ? null
                 : (value) => setState(() {
                     income = value == 1;
+                    incomeInOpening = widget.onSubmit != null && income
+                        ? null
+                        : false;
+                    linkedPayment = null;
                     category = categories.first;
                   }),
           ),
           const SizedBox(height: 25),
+          if (income)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: Text(
+                'Запиши фактически полученную сумму. Поступления подтверждают доход плана; сверх плана — увеличивают бюджет.',
+                style: TextStyle(fontSize: 12, color: KopiColors.muted),
+              ),
+            ),
           KopiField(
             label: 'Сумма, ₽',
             hint: '0',
@@ -279,6 +302,20 @@ class _OperationScreenState extends State<OperationScreen> {
             last: widget.today,
             onChanged: (v) => setState(() => date = v),
           ),
+          if (!income && widget.onSubmit != null)
+            ChoiceField(
+              label: 'Связать с платежом или подпиской',
+              value: linkedPayment ?? '',
+              choices: {
+                '': 'Обычный расход',
+                for (final p in widget.store.paymentsFor(date))
+                  if (!widget.store.isPaid(p) || p.key == linkedPayment)
+                    p.key:
+                        '${p.payment.title} · ${money(p.payment.amount)} · ${dayLabel(p.date)}',
+              },
+              onChanged: (v) =>
+                  setState(() => linkedPayment = v.isEmpty ? null : v),
+            ),
           if (widget.initial?.paymentOccurrence != null)
             const Padding(
               padding: EdgeInsets.only(bottom: 18),
@@ -337,6 +374,14 @@ class CalendarScreen extends StatelessWidget {
     required this.onAdd,
     required this.onSubscriptions,
   });
+  Widget paymentRow(PaymentOccurrence p, {VoidCallback? onTap}) => FinanceRow(
+    title: p.payment.title,
+    subtitle: store.isPaid(p)
+        ? 'Оплачено · расход в истории'
+        : '${p.payment.monthly ? 'Каждый месяц' : 'Один раз'} · ${reminderLabel(p.payment.reminderDays)}',
+    amount: money(p.payment.amount),
+    onTap: onTap ?? () => onPayment(p),
+  );
   @override
   Widget build(BuildContext context) {
     final first = DateTime(selected.year, selected.month);
@@ -350,7 +395,8 @@ class CalendarScreen extends StatelessWidget {
       MediaQuery.textScalerOf(context).scale(13) + 28,
     );
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -471,7 +517,7 @@ class CalendarScreen extends StatelessWidget {
                   ),
               ],
             ),
-          const SizedBox(height: 25),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: Heading(dayLabel(selected), size: 23)),
@@ -483,40 +529,53 @@ class CalendarScreen extends StatelessWidget {
           ),
           if (daily.isEmpty)
             const FinanceEmpty('На этот день ничего не запланировано.'),
-          ...daily.map(
-            (p) => FinanceRow(
-              title: p.payment.title,
-              subtitle: store.isPaid(p)
-                  ? 'Оплачено · расход в истории'
-                  : '${p.payment.monthly ? 'Каждый месяц' : 'Один раз'} · ${reminderLabel(p.payment.reminderDays)}',
-              amount: money(p.payment.amount),
-              onTap: () => onPayment(p),
+          ...daily
+              .take(MediaQuery.sizeOf(context).height < 850 ? 1 : 2)
+              .map((p) => paymentRow(p)),
+          if (daily.length > (MediaQuery.sizeOf(context).height < 850 ? 1 : 2))
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                child: Text(
+                  'Все платежи дня (${daily.length}) →',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  showDragHandle: true,
+                  backgroundColor: KopiColors.background,
+                  builder: (sheetContext) => SafeArea(
+                    child: SizedBox(
+                      height: MediaQuery.sizeOf(sheetContext).height * .65,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        children: [
+                          Heading(dayLabel(selected), size: 23),
+                          const SizedBox(height: 12),
+                          ...daily.map(
+                            (p) => paymentRow(
+                              p,
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                onPayment(p);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 23),
+          const SizedBox(height: 10),
           KopiButton(
             '+ Запланировать платёж',
             onPressed: onAdd,
             secondary: true,
           ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3ECE0),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Text(
-              'Напоминание не отменяет подписку. Отключить её можно в самом сервисе.',
-              style: TextStyle(
-                fontSize: 11,
-                color: Color(0xFF9B8D76),
-                height: 1.6,
-              ),
-            ),
-          ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -551,6 +610,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   late DateTime date;
   late bool monthly;
   late int reminder;
+  late int reminderMinute, repeatMinutes;
   bool busy = false;
   String? error;
   @override
@@ -565,6 +625,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     date = p?.start ?? widget.date;
     monthly = p?.monthly ?? widget.monthly;
     reminder = p?.reminderDays ?? 1;
+    reminderMinute = p?.reminderMinute ?? 540;
+    repeatMinutes = p?.repeatMinutes ?? 0;
   }
 
   @override
@@ -590,6 +652,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           start: dateOnly(date),
           monthly: monthly,
           reminderDays: reminder,
+          reminderMinute: reminderMinute,
+          repeatMinutes: repeatMinutes,
         ),
       );
       if (mounted) widget.onComplete();
@@ -668,7 +732,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final occurrence = widget.occurrence;
     final paid = occurrence != null && widget.store.isPaid(occurrence);
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Form(
         key: form,
         child: Column(
@@ -714,22 +779,93 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ChoiceField(
               label: 'Напомнить',
               value: reminder,
-              choices: const {
+              choices: {
                 -1: 'Не напоминать',
                 0: 'В день платежа',
                 1: 'За 1 день',
                 3: 'За 3 дня',
+                if (![-1, 0, 1, 3].contains(reminder))
+                  reminder: 'За $reminder дн.',
               },
               onChanged: (v) => setState(() => reminder = v),
             ),
-            const Text(
-              'Запись появится в календаре. Реальные уведомления в этой версии не отправляются.',
-              style: TextStyle(
-                fontSize: 11,
-                color: KopiColors.muted,
-                height: 1.6,
+            if (reminder >= 0)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('Время и повтор'),
+                subtitle: Text(
+                  '${(reminderMinute ~/ 60).toString().padLeft(2, '0')}:${(reminderMinute % 60).toString().padLeft(2, '0')} · ${repeatMinutes == 0 ? 'один раз' : 'с повтором'}',
+                ),
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      final chosen = await showDatePicker(
+                        context: context,
+                        initialDate: date.subtract(Duration(days: reminder)),
+                        firstDate: date.subtract(const Duration(days: 365)),
+                        lastDate: date,
+                      );
+                      if (chosen != null && mounted) {
+                        setState(
+                          () => reminder =
+                              DateTime.utc(date.year, date.month, date.day)
+                                  .difference(
+                                    DateTime.utc(
+                                      chosen.year,
+                                      chosen.month,
+                                      chosen.day,
+                                    ),
+                                  )
+                                  .inDays,
+                        );
+                      }
+                    },
+                    child: const Text('Выбрать день напоминания'),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Время напоминания'),
+                    trailing: Text(
+                      '${(reminderMinute ~/ 60).toString().padLeft(2, '0')}:${(reminderMinute % 60).toString().padLeft(2, '0')}',
+                    ),
+                    onTap: () async {
+                      final chosen = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(
+                          hour: reminderMinute ~/ 60,
+                          minute: reminderMinute % 60,
+                        ),
+                      );
+                      if (chosen != null && mounted) {
+                        setState(
+                          () =>
+                              reminderMinute = chosen.hour * 60 + chosen.minute,
+                        );
+                      }
+                    },
+                  ),
+                  ChoiceField(
+                    label: 'Повторять напоминание до оплаты',
+                    value: repeatMinutes,
+                    choices: const {
+                      0: 'Один раз',
+                      15: 'Каждые 15 минут',
+                      30: 'Каждые 30 минут',
+                      60: 'Каждый час',
+                      1440: 'Каждый день',
+                    },
+                    onChanged: (v) => setState(() => repeatMinutes = v),
+                  ),
+                  const Text(
+                    'Время местное. Повторы прекращаются после отметки оплаты или через 7 дней после срока. Для точного времени разреши Android «Будильники и напоминания» для Копи.',
+                    style: TextStyle(fontSize: 12, color: KopiColors.muted),
+                  ),
+                  TextButton(
+                    onPressed: () => NotificationBridge.openExactAlarms(),
+                    child: const Text('Настроить точное время в Android'),
+                  ),
+                ],
               ),
-            ),
             const SizedBox(height: 28),
             if (error != null)
               Padding(
@@ -795,7 +931,8 @@ class SubscriptionsScreen extends StatelessWidget {
       );
     final total = recurring.fold<int>(0, (sum, p) => sum + p.amount);
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
