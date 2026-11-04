@@ -107,7 +107,7 @@ class _GoalContributionsState extends State<GoalContributionsScreen> {
               Text('Накоплено ${money(goal.saved)} из ${money(goal.target)}'),
               const SizedBox(height: 12),
               const Text(
-                'Запиши сумму, которую действительно отложил. Она уменьшит доступные деньги, но не попадёт в расходы. Приложение не переводит деньги.',
+                'Укажи сумму, которую уже отложил. Она войдёт в расходы за месяц взноса и увеличит накопления на эту мечту.',
               ),
               const SizedBox(height: 20),
               Form(

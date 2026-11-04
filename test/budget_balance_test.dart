@@ -186,6 +186,20 @@ void main() {
       );
       await store.addContribution(contribution);
       await store.addContribution(contribution);
+      expect(store.spentFor(october), 1300000);
+      final summary = ExpenseAnalytics.from(
+        store.entries,
+        october,
+        october,
+        contributions: store.contributions,
+      );
+      expect(summary.total, store.spentFor(october));
+      expect(
+        summary.categories
+            .singleWhere((c) => c.name == 'Взносы в мечты')
+            .amount,
+        300000,
+      );
       expect(store.availableFor(october), 1700000);
       expect(store.dreamsReserveFor(october, october), 0);
       final november = DateTime(2026, 11);
@@ -200,8 +214,10 @@ void main() {
         ),
       );
       expect(store.availableFor(november), 1700000);
+      expect(store.spentFor(november), 0);
       await store.deleteContribution(contribution.id);
       expect(store.availableFor(november), 2000000);
+      expect(store.spentFor(october), 1000000);
       expect(store.goals.single.saved, 0);
     },
   );

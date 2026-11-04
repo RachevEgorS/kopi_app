@@ -477,9 +477,11 @@ class DiaryStore extends ChangeNotifier {
           .toList()
         ..sort((a, b) => a.date.compareTo(b.date));
 
-  int spentFor(DateTime month) => entriesFor(
-    month,
-  ).where((e) => !e.isIncome).fold(0, (sum, e) => sum + e.amount);
+  int spentFor(DateTime month) =>
+      entriesFor(
+        month,
+      ).where((e) => !e.isIncome).fold<int>(0, (sum, e) => sum + e.amount) +
+      contributionsFor(month);
   int addedIncomeFor(DateTime month) => entriesFor(month)
       .where((e) => e.isIncome && !e.incomeInOpening)
       .fold(0, (sum, e) => sum + e.amount);
@@ -518,16 +520,13 @@ class DiaryStore extends ChangeNotifier {
       final date = DateTime.parse('$key-01');
       final budget = budgets[key];
       if (budget != null && !budget.carryForward) balance = 0;
-      balance += incomeFor(date) - spentFor(date) - contributionsFor(date);
+      balance += incomeFor(date) - spentFor(date);
     }
     return balance;
   }
 
   int availableFor(DateTime month) =>
-      carriedFor(month) +
-      incomeFor(month) -
-      spentFor(month) -
-      contributionsFor(month);
+      carriedFor(month) + incomeFor(month) - spentFor(month);
 
   Future<void> addContribution(GoalContribution contribution) async {
     if (contributions.any((c) => c.id == contribution.id)) return;

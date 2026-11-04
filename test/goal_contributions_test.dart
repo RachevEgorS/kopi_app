@@ -5,6 +5,7 @@ import 'package:kopi_finance_app/data/diary.dart';
 import 'package:kopi_finance_app/data/progress.dart';
 import 'package:kopi_finance_app/ui/goal_contributions.dart';
 import 'package:kopi_finance_app/ui/design.dart';
+import 'package:kopi_finance_app/ui/screens.dart';
 
 void main() {
   testWidgets('goal screen records a contribution and shows history', (
@@ -36,6 +37,25 @@ void main() {
     expect(store.goals.single.saved, 50000);
     expect(store.entries, isEmpty);
     expect(find.text('500 ₽'), findsOneWidget);
+    final day = store.contributions.single.date;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: kopiTheme(),
+        home: Scaffold(
+          body: DiaryScreen(
+            store: store,
+            month: day,
+            today: day,
+            onMonth: (_) {},
+            onBudget: () {},
+            onLogout: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('500 ₽'), findsOneWidget);
+    expect(find.text('Взносы в мечты за месяц: 500 ₽'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     store.dispose();
   });

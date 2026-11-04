@@ -194,11 +194,16 @@ class ExpenseAnalytics {
   factory ExpenseAnalytics.from(
     List<Entry> entries,
     DateTime month,
-    DateTime today,
-  ) {
-    final current = entries.where(
-      (e) => !e.isIncome && monthKey(e.date) == monthKey(month),
-    );
+    DateTime today, {
+    Iterable<GoalContribution> contributions = const [],
+  }) {
+    final outflows = [
+      for (final e in entries)
+        if (!e.isIncome) (date: e.date, category: e.category, amount: e.amount),
+      for (final c in contributions)
+        (date: c.date, category: 'Взносы в мечты', amount: c.amount),
+    ];
+    final current = outflows.where((e) => monthKey(e.date) == monthKey(month));
     final sums = <String, int>{};
     for (final entry in current) {
       sums.update(
@@ -236,10 +241,9 @@ class ExpenseAnalytics {
         ? min(today.day, DateTime(previous.year, previous.month + 1, 0).day)
         : null;
     final name = sums.containsKey('Кафе') ? 'Кафе' : categories.first.name;
-    int sumIn(DateTime period) => entries
+    int sumIn(DateTime period) => outflows
         .where(
           (e) =>
-              !e.isIncome &&
               e.category == name &&
               monthKey(e.date) == monthKey(period) &&
               (cutoff == null || e.date.day <= cutoff),

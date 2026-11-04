@@ -908,9 +908,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
         .paymentsFor(widget.month)
         .where((p) => !widget.store.isPaid(p))
         .toList();
-    final spent = examples
-        ? 1820000
-        : entries.fold<int>(0, (sum, e) => sum + e.amount);
+    final spent = examples ? 1820000 : widget.store.spentFor(widget.month);
+    final savedThisMonth = examples
+        ? 0
+        : widget.store.contributionsFor(widget.month);
     final isCurrent = monthKey(widget.month) == monthKey(widget.today);
     final isPast = widget.month.isBefore(
       DateTime(widget.today.year, widget.today.month),
@@ -1026,7 +1027,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         : () => showKopiMessage(
                             context,
                             'Твой дневной ориентир',
-                            'Доход плана: ${money(income)}\nПотрачено: ${money(spent)}\nОстаток бюджета: ${money(available)}\nОбязательные платежи: ${money(reserve)}\nНа мечты: ${money(dreams)}\nОсталось дней: $days\nСвободная сумма: ${money(allowance!.free)}\n\nСегодняшние повседневные расходы вычитаются из дневной суммы полностью. Оплату обязательного платежа отмечай в календаре, чтобы она освободила резерв.',
+                            'Доход плана: ${money(income)}\nПотрачено: ${money(spent)}\nИз них взносы в мечты: ${money(savedThisMonth)}\nОстаток бюджета: ${money(available)}\nОбязательные платежи: ${money(reserve)}\nНа мечты: ${money(dreams)}\nОсталось дней: $days\nСвободная сумма: ${money(allowance!.free)}\n\nСегодняшние повседневные расходы вычитаются из дневной суммы полностью. Оплату обязательного платежа отмечай в календаре, чтобы она освободила резерв.',
                           ),
                     style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
@@ -1149,7 +1150,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     history(entries);
                   }
                 }),
-                if (entries.isEmpty)
+                if (savedThisMonth > 0)
+                  Text(
+                    'Взносы в мечты за месяц: ${money(savedThisMonth)}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                if (entries.isEmpty && savedThisMonth == 0)
                   const _Empty(
                     'Пока без записей\nНажми «+», чтобы добавить первый расход.',
                   ),

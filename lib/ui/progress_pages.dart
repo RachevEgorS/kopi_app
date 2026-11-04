@@ -43,7 +43,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   VoidCallback get onAdd => widget.onAdd;
   @override
   Widget build(BuildContext context) {
-    final stats = ExpenseAnalytics.from(store.entries, month, today);
+    final stats = ExpenseAnalytics.from(
+      store.entries,
+      month,
+      today,
+      contributions: store.contributions,
+    );
     final subscriptions = store
         .paymentsFor(month)
         .where((p) => p.payment.monthly)
